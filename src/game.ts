@@ -36,7 +36,7 @@ const VIRTUAL_WIDTH = 1280;
 const VIRTUAL_HEIGHT = 800;
 
 // --- Setup ---
-const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+const canvas = document.getElementById("tablet-canvas") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
 const container = document.getElementById("game-container") as HTMLElement;
@@ -59,7 +59,7 @@ let isDragging = false;
 let committedGuess: Point = { x: VIRTUAL_WIDTH / 2, y: VIRTUAL_HEIGHT / 2 };
 let successStartMs: number | null = null;
 let successMessageVisible = false;
-let successPingCenter: Point | null = null;
+
 
 // --- Level Management ---
 function createLevelSelector() {
@@ -88,7 +88,6 @@ function loadLevel(levelIndex: number) {
   committedGuess = { x: VIRTUAL_WIDTH / 2, y: VIRTUAL_HEIGHT / 2 };
   successStartMs = null;
   successMessageVisible = false;
-  successPingCenter = null;
   
   // Update active level in selector
   document.querySelectorAll(".level-box").forEach((box, index) => {
@@ -139,7 +138,12 @@ function resizeCanvas() {
   canvas.width = VIRTUAL_WIDTH;
   canvas.height = VIRTUAL_HEIGHT;
 
-  const tooSmall = window.innerWidth < VIRTUAL_WIDTH || window.innerHeight < VIRTUAL_HEIGHT;
+  // Calculate total game container height: level-name + tablet-canvas
+  const levelNameHeight = 40; // Approximate height of level-name (padding + font + border)
+  const totalGameHeight = levelNameHeight + VIRTUAL_HEIGHT;
+  const totalGameWidth = VIRTUAL_WIDTH;
+
+  const tooSmall = window.innerWidth < totalGameWidth || window.innerHeight < totalGameHeight;
 
   if (tooSmall) {
     container.style.display = "none";
