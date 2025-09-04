@@ -1,0 +1,10 @@
+{
+  "id": 1,
+  "target": { "x": 100, "y": 300 },
+  "feedback": "hotCold",
+  "settings": {
+    "targetColor": "#00FF00",
+    "farColor": "#FF0000",
+    "radius": 20
+  }
+}
