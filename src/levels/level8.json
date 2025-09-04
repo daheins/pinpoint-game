@@ -1,7 +1,7 @@
 {
   "id": 8,
   "displayName": "Level 8",
-  "target": { "x": 654, "y": 432 },
+  "target": { "x": 51.1, "y": 54.0 },
   "feedback": "hotCold",
   "settings": {
     "targetColor": "#00FF00",

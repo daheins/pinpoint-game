@@ -183,7 +183,11 @@ function loop() {
   ctx.save();
   ctx.scale(canvas.width / VIRTUAL_WIDTH, canvas.height / VIRTUAL_HEIGHT);
 
-  const target = currentLevel.target;
+  // Convert percentage coordinates to pixel coordinates
+  const target = {
+    x: (currentLevel.target.x / 100) * VIRTUAL_WIDTH,
+    y: (currentLevel.target.y / 100) * VIRTUAL_HEIGHT
+  };
   const activePoint = isDragging ? guess : committedGuess;
   const dist = distance(activePoint, target);
   const maxDist = Math.sqrt(VIRTUAL_WIDTH ** 2 + VIRTUAL_HEIGHT ** 2);
@@ -269,7 +273,11 @@ canvas.addEventListener("mouseup", () => {
   committedGuess.y = guess.y;
 
   // Check success only on drop
-  const wasFound = distance(committedGuess, currentLevel.target) < currentLevel.settings.radius;
+  const target = {
+    x: (currentLevel.target.x / 100) * VIRTUAL_WIDTH,
+    y: (currentLevel.target.y / 100) * VIRTUAL_HEIGHT
+  };
+  const wasFound = distance(committedGuess, target) < currentLevel.settings.radius;
   if (wasFound) {
     successStartMs = performance.now();
   } else {
