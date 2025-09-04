@@ -1,15 +1,5 @@
-import level1 from "./levels/level1.json";
-import level2 from "./levels/level2.json";
-import level3 from "./levels/level3.json";
-import level4 from "./levels/level4.json";
-import level5 from "./levels/level5.json";
-import level6 from "./levels/level6.json";
-import level7 from "./levels/level7.json";
-import level8 from "./levels/level8.json";
-import level9 from "./levels/level9.json";
-import level10 from "./levels/level10.json";
-import level11 from "./levels/level11.json";
-import level12 from "./levels/level12.json";
+// Dynamically import all level files
+const levelModules = import.meta.glob('./levels/*.json', { eager: true });
 
 // --- Types ---
 interface Point {
@@ -47,12 +37,10 @@ const levelGrid = document.getElementById("level-grid") as HTMLElement;
 container.style.width = `${VIRTUAL_WIDTH}px`;
 container.style.height = `${VIRTUAL_HEIGHT}px`;
 
-// Available levels
-const levels: Level[] = [
-  level1 as Level, level2 as Level, level3 as Level, level4 as Level,
-  level5 as Level, level6 as Level, level7 as Level, level8 as Level,
-  level9 as Level, level10 as Level, level11 as Level, level12 as Level
-];
+// Available levels - dynamically loaded from levels folder and sorted by ID
+const levels: Level[] = Object.values(levelModules)
+  .map(module => (module as any).default as Level)
+  .sort((a, b) => a.id - b.id);
 let currentLevel: Level = levels[0];
 let mouse: Point = { x: 0, y: 0 };
 let guess: Point = { x: VIRTUAL_WIDTH / 2, y: VIRTUAL_HEIGHT / 2 };
