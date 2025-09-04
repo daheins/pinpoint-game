@@ -27,13 +27,14 @@ interface Level {
   id: number;
   displayName: string;
   target: Point;
+  image?: string;
   feedback: "hotCold";
   settings: LevelSettings;
 }
 
 // --- Virtual Resolution ---
-const VIRTUAL_WIDTH = 1280;
-const VIRTUAL_HEIGHT = 800;
+const VIRTUAL_WIDTH = 1440;
+const VIRTUAL_HEIGHT = 810;
 
 // --- Setup ---
 const canvas = document.getElementById("tablet-canvas") as HTMLCanvasElement;
@@ -59,7 +60,7 @@ let isDragging = false;
 let committedGuess: Point = { x: VIRTUAL_WIDTH / 2, y: VIRTUAL_HEIGHT / 2 };
 let successStartMs: number | null = null;
 let successMessageVisible = false;
-
+let backgroundImage: HTMLImageElement | null = null;
 
 // --- Level Management ---
 function createLevelSelector() {
@@ -82,6 +83,21 @@ function createLevelSelector() {
 function loadLevel(levelIndex: number) {
   currentLevel = levels[levelIndex];
   levelNameDisplay.textContent = currentLevel.displayName;
+  
+  // Load background image if level has one
+  if (currentLevel.image) {
+    backgroundImage = new Image();
+    backgroundImage.onload = () => {
+      // Image loaded successfully
+    };
+    backgroundImage.onerror = () => {
+      console.error(`Failed to load image: /images/${currentLevel.image}`);
+      backgroundImage = null;
+    };
+    backgroundImage.src = `/images/${currentLevel.image}`;
+  } else {
+    backgroundImage = null;
+  }
   
   // Reset game state
   guess = { x: VIRTUAL_WIDTH / 2, y: VIRTUAL_HEIGHT / 2 };
@@ -160,21 +176,6 @@ resizeCanvas();
 createLevelSelector();
 levelNameDisplay.textContent = currentLevel.displayName;
 
-// --- Input (map to virtual space) ---
-canvas.addEventListener("mousemove", (e: MouseEvent) => {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = VIRTUAL_WIDTH / rect.width;
-  const scaleY = VIRTUAL_HEIGHT / rect.height;
-
-  mouse.x = (e.clientX - rect.left) * scaleX;
-  mouse.y = (e.clientY - rect.top) * scaleY;
-
-  if (isDragging) {
-    guess.x = mouse.x;
-    guess.y = mouse.y;
-  }
-});
-
 // --- Game Loop ---
 function loop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -196,8 +197,14 @@ function loop() {
   const v = Math.round(255 * (1 - t));
   const color = `rgb(${v}, ${v}, ${v})`;
 
-  ctx.fillStyle = color;
-  ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+  // Draw background image if available
+  if (backgroundImage && backgroundImage.complete) {
+    ctx.drawImage(backgroundImage, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+  } else {
+    // Draw color background if no image
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+  }
 
   // draw guess X (white while dragging, black when dropped)
   ctx.strokeStyle = isDragging ? "white" : "black";
@@ -265,6 +272,21 @@ canvas.addEventListener("mousedown", () => {
   successMessageVisible = false;
   guess.x = mouse.x;
   guess.y = mouse.y;
+});
+
+// --- Input (map to virtual space) ---
+canvas.addEventListener("mousemove", (e: MouseEvent) => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = VIRTUAL_WIDTH / rect.width;
+  const scaleY = VIRTUAL_HEIGHT / rect.height;
+
+  mouse.x = (e.clientX - rect.left) * scaleX;
+  mouse.y = (e.clientY - rect.top) * scaleY;
+
+  if (isDragging) {
+    guess.x = mouse.x;
+    guess.y = mouse.y;
+  }
 });
 
 canvas.addEventListener("mouseup", () => {

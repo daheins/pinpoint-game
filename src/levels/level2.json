@@ -2,6 +2,7 @@
   "id": 2,
   "displayName": "Level 2",
   "target": { "x": 62.5, "y": 16.75 },
+  "image": "purpleMountain.jpg",
   "feedback": "hotCold",
   "settings": {
     "targetColor": "#00FF00",
