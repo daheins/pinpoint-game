@@ -27,19 +27,64 @@
         position: relative;
       }
 
+      #level-name {
+        background: #333;
+        color: white;
+        padding: 8px 16px;
+        font-size: 16px;
+        font-weight: bold;
+        width: 100%;
+        text-align: center;
+        border-bottom: 2px solid #555;
+      }
+
       canvas {
         width: 100%;
         height: 100%;
         display: block;
       }
 
-      #menu {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 6px 12px;
-        border-radius: 6px;
+      #level-selector {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #333;
+        border: 2px solid #555;
+        border-radius: 8px;
+        padding: 12px;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+
+      .level-grid {
+        display: grid;
+        grid-auto-flow: column;
+        grid-template-rows: repeat(10, 40px);
+        grid-auto-columns: 60px;
+        gap: 4px;
+        max-width: 200px;
+      }
+
+      .level-box {
+        background: #444;
+        border: 1px solid #666;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .level-box:hover {
+        background: #555;
+      }
+
+      .level-box.active {
+        background: #007acc;
+        border-color: #0099ff;
       }
     </style>
   </head>
@@ -48,7 +93,11 @@
       Your window is too small to display the game at the required size.
     </div>
     <div id="game-container">
+      <div id="level-name">Level 1</div>
       <canvas></canvas>
+      <div id="level-selector">
+        <div class="level-grid" id="level-grid"></div>
+      </div>
     </div>
     <script type="module" src="/src/game.ts"></script>
   </body>

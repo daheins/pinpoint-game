@@ -1,7 +1,7 @@
 {
-  "id": 1,
-  "displayName": "Level 1",
-  "target": { "x": 100, "y": 300 },
+  "id": 11,
+  "displayName": "Level 11",
+  "target": { "x": 543, "y": 678 },
   "feedback": "hotCold",
   "settings": {
     "targetColor": "#00FF00",
