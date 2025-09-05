@@ -11,11 +11,17 @@ export interface LevelSettings {
   radius: number;
 }
 
+export interface MultiImageElement {
+  image: string;
+  target: Point;
+}
+
 export interface Level {
   id: number;
   displayName: string;
   target: Point;
   image?: string;
+  multiImage?: MultiImageElement[];
   feedback: "hotCold";
   settings: LevelSettings;
 }

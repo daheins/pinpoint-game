@@ -2,6 +2,20 @@
   "id": 4,
   "displayName": "Level 4",
   "target": { "x": 61.6, "y": 70.9 },
+  "multiImage": [
+    {
+      "image": "level4_1.png",
+      "target": { "x": 25.3, "y": 42.7 }
+    },
+    {
+      "image": "level4_2.png", 
+      "target": { "x": 78.9, "y": 15.2 }
+    },
+    {
+      "image": "level4_3.png",
+      "target": { "x": 56.1, "y": 83.4 }
+    }
+  ],
   "feedback": "hotCold",
   "settings": {
     "targetColor": "#00FF00",

@@ -6,6 +6,7 @@ import type { Point, Level } from './level';
 import { LevelManager } from './level';
 
 import { Application, Sprite, Assets, Container, Graphics, Text, DisplacementFilter } from "pixi.js";
+// import { createMinimalFilter } from './multiImageFilter';
 
 // --- Virtual Resolution ---
 const TABLET_WIDTH = 1440;
@@ -59,6 +60,8 @@ let committedGuess: Point = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
 let successStartMs: number | null = null;
 let successMessageVisible = false;
 let backgroundSprite: Sprite | null = null;
+let backgroundSprites: Sprite[] = [];
+// Disable custom shader path for stability; we'll blend via alpha for now
 let crosshairGraphics: Graphics | null = null;
 let successText: Text | null = null;
 
@@ -90,7 +93,16 @@ async function loadLevel(levelIndex: number) {
     backgroundSprite = null;
   }
   
-  // Load background image if level has one
+  // Clear previous multi-image backgrounds
+  backgroundSprites.forEach(sprite => {
+    backgroundContainer.removeChild(sprite);
+  });
+  backgroundSprites = [];
+  // no custom filters active
+  // Clear any existing filters on the container
+  (backgroundContainer as any).filters = undefined;
+  
+  // Load background image(s) if level has them
   if (currentLevel.image) {
     try {
       const texture = await Assets.load(`/images/${currentLevel.image}`);
@@ -115,6 +127,29 @@ async function loadLevel(levelIndex: number) {
     } catch (error) {
       console.error(`Failed to load image: /images/${currentLevel.image}`, error);
       backgroundSprite = null;
+    }
+  } else if (currentLevel.multiImage) {
+    // Handle multi-image levels
+    try {
+      // Load all images and create sprites
+      for (const imageElement of currentLevel.multiImage) {
+        const texture = await Assets.load(`/images/${imageElement.image}`);
+        const sprite = new Sprite(texture);
+        sprite.width = TABLET_WIDTH;
+        sprite.height = TABLET_HEIGHT;
+        backgroundSprites.push(sprite);
+        backgroundContainer.addChild(sprite);
+      }
+      
+      // // Apply minimal safe filter per-sprite
+      // backgroundSprites.forEach(sprite => {
+      //   const f = createMinimalFilter();
+      //   // Bind sprite's texture to uTexture
+      //   (f as any).resources.uTexture = sprite.texture.source;
+      //   (sprite as any).filters = [f];
+      // });
+    } catch (error) {
+      console.error(`Failed to load multi-image level:`, error);
     }
   } else {
     backgroundSprite = null;
@@ -170,7 +205,7 @@ function createCrosshair() {
   }
   
   crosshairGraphics = new Graphics();
-  crosshairGraphics.lineStyle(3, isDragging ? 0xffffff : 0x000000);
+  crosshairGraphics.setStrokeStyle({ width: 3, color: isDragging ? 0xffffff : 0x000000 });
   crosshairGraphics.moveTo(guess.x - 12, guess.y - 12);
   crosshairGraphics.lineTo(guess.x + 12, guess.y + 12);
   crosshairGraphics.moveTo(guess.x + 12, guess.y - 12);
@@ -238,8 +273,24 @@ function gameLoop() {
   // Update warp filter with current player position
   updateWarpFilter(activePercentageGuess.x, activePercentageGuess.y);
 
+  // Multi-image alpha reveal: nearer to a sprite's target -> higher alpha
+  if (currentLevel.multiImage && backgroundSprites.length === currentLevel.multiImage.length) {
+    for (let i = 0; i < backgroundSprites.length; i++) {
+      const sprite = backgroundSprites[i];
+      const t = currentLevel.multiImage[i].target; // 0..100
+      const dx = (activePercentageGuess.x - t.x);
+      const dy = (activePercentageGuess.y - t.y);
+      const d = Math.sqrt(dx * dx + dy * dy); // 0..~141
+      // Map distance to focus in 0..1 (closer = 1). Tunable falloff.
+      const focus = Math.max(0, 1 - (d / 30));
+      // Base alpha when far: low but non-zero to still see stacks
+      const minAlpha = 0.2;
+      sprite.alpha = minAlpha + (1 - minAlpha) * focus;
+    }
+  }
+
   // Set background color if no image
-  if (!backgroundSprite) {
+  if (!backgroundSprite && backgroundSprites.length === 0) {
     const dist = levelManager.distance(activePercentageGuess, currentLevel.target);
     const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
     const t = Math.min(dist / maxDist, 1);
