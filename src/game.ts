@@ -5,13 +5,18 @@ const levelModules = import.meta.glob('./levels/*.json', { eager: true });
 import type { Point, Level } from './level';
 import { LevelManager } from './level';
 
+import { Application, Sprite, Assets, Container, Graphics, Text, DisplacementFilter } from "pixi.js";
+
 // --- Virtual Resolution ---
 const TABLET_WIDTH = 1440;
 const TABLET_HEIGHT = 810;
 
+// --- Warp Effect Variables ---
+let displacementFilter: DisplacementFilter | null = null;
+let displacementSprite: Sprite | null = null;
+
 // --- Setup ---
 const canvas = document.getElementById("tablet-canvas") as HTMLCanvasElement;
-const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
 const container = document.getElementById("game-container") as HTMLElement;
 const sizeWarning = document.getElementById("size-warning") as HTMLElement;
@@ -19,6 +24,28 @@ const levelNameDisplay = document.getElementById("level-name") as HTMLElement;
 const levelGrid = document.getElementById("level-grid") as HTMLElement;
 container.style.width = `${TABLET_WIDTH}px`;
 container.style.height = `${TABLET_HEIGHT}px`;
+
+// --- PIXI.js Setup ---
+const app = new Application();
+await app.init({
+  canvas: canvas,
+  width: TABLET_WIDTH,
+  height: TABLET_HEIGHT,
+  backgroundColor: 0x000000,
+  antialias: true
+});
+
+// Create main container
+const gameContainer = new Container();
+app.stage.addChild(gameContainer);
+
+// Create background sprite container
+const backgroundContainer = new Container();
+gameContainer.addChild(backgroundContainer);
+
+// Create UI container for crosshair and effects
+const uiContainer = new Container();
+gameContainer.addChild(uiContainer);
 
 // Available levels - dynamically loaded from levels folder and sorted by ID
 const levels: Level[] = Object.values(levelModules)
@@ -31,7 +58,9 @@ let isDragging = false;
 let committedGuess: Point = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
 let successStartMs: number | null = null;
 let successMessageVisible = false;
-let backgroundImage: HTMLImageElement | null = null;
+let backgroundSprite: Sprite | null = null;
+let crosshairGraphics: Graphics | null = null;
+let successText: Text | null = null;
 
 // --- Level Management ---
 function createLevelSelector() {
@@ -51,23 +80,46 @@ function createLevelSelector() {
   });
 }
 
-function loadLevel(levelIndex: number) {
+async function loadLevel(levelIndex: number) {
   currentLevel = levelManager.loadLevel(levelIndex);
   levelNameDisplay.textContent = currentLevel.displayName;
   
+  // Clear previous background
+  if (backgroundSprite) {
+    backgroundContainer.removeChild(backgroundSprite);
+    backgroundSprite = null;
+  }
+  
   // Load background image if level has one
   if (currentLevel.image) {
-    backgroundImage = new Image();
-    backgroundImage.onload = () => {
-      // Image loaded successfully
-    };
-    backgroundImage.onerror = () => {
-      console.error(`Failed to load image: /images/${currentLevel.image}`);
-      backgroundImage = null;
-    };
-    backgroundImage.src = `/images/${currentLevel.image}`;
+    try {
+      const texture = await Assets.load(`/images/${currentLevel.image}`);
+      backgroundSprite = new Sprite(texture);
+      backgroundSprite.width = TABLET_WIDTH;
+      backgroundSprite.height = TABLET_HEIGHT;
+      
+      // Create displacement texture for warping effect
+      const displacementTexture = await Assets.load(`/images/${currentLevel.image}`);
+      displacementSprite = new Sprite(displacementTexture);
+      displacementSprite.width = TABLET_WIDTH;
+      displacementSprite.height = TABLET_HEIGHT;
+      
+      // Create displacement filter
+      displacementFilter = new DisplacementFilter({
+        sprite: displacementSprite,
+        scale: 0
+      });
+      
+      backgroundSprite.filters = [displacementFilter];
+      backgroundContainer.addChild(backgroundSprite);
+    } catch (error) {
+      console.error(`Failed to load image: /images/${currentLevel.image}`, error);
+      backgroundSprite = null;
+    }
   } else {
-    backgroundImage = null;
+    backgroundSprite = null;
+    displacementFilter = null;
+    displacementSprite = null;
   }
   
   // Reset game state
@@ -87,64 +139,69 @@ function loadLevel(levelIndex: number) {
 }
 
 // --- Helpers ---
-function drawWarpedImage(targetX: number, targetY: number, playerX: number, playerY: number) {
-  if (!backgroundImage || !backgroundImage.complete) return;
-
-  // console.log(`target: ${targetX}, ${targetY}, player: ${playerX}, ${playerY}`);
-
-  const dx = Math.abs(playerX - targetX);
-  const dy = Math.abs(playerY - targetY);
-
-  // Scale warp strength — tweak these numbers to taste
-  const wavelength = 5;      // controls frequency of waves
-  const ampX = dx / 10; // stronger warp if farther away
-  const ampY = dy / 10;
-
-  // // --- Horizontal wave (slice image into horizontal strips) ---
-  // const sliceHeight = 4; // thinner = smoother but more CPU
-  // for (let y = 0; y < TABLET_HEIGHT; y += sliceHeight) {
-  //   const offsetX = ampX * Math.sin(y / wavelength);
-  //   ctx.drawImage(
-  //     backgroundImage,
-  //     0, y, TABLET_WIDTH, sliceHeight,   // source slice
-  //     offsetX, y, TABLET_HEIGHT, sliceHeight // destination shifted slice
-  //   );
-  // }
-
-  // // --- Vertical wave (slice image into vertical strips) ---
-  // const sliceWidth = 20;
-  // for (let x = 0; x < TABLET_WIDTH; x += sliceWidth) {
-  //   const offsetY = ampY * Math.sin(x / wavelength);
-  //   ctx.drawImage(
-  //     backgroundImage,
-  //     x, 0, sliceWidth, TABLET_HEIGHT,   // source slice
-  //     x, offsetY, sliceWidth, TABLET_HEIGHT // destination shifted slice
-  //   );
-  // }
-  
-  // --- Combined warp (slice by rows) ---
-  const sliceHeight = 4;
-  for (let y = 0; y < TABLET_HEIGHT; y += sliceHeight) {
-    // Horizontal offset depends on Y
-    const offsetX = ampX * Math.sin(y / wavelength);
-
-    // Vertical offset depends on X distance — but we only have y here
-    // Trick: add a secondary sine to vary vertical shift by row
-    const offsetY = ampY * Math.sin((y + playerX) / wavelength);
-
-    ctx.drawImage(
-      backgroundImage,
-      0, y, TABLET_WIDTH, sliceHeight,          // source slice
-      offsetX, y + offsetY, TABLET_WIDTH, sliceHeight // destination
-    );
+function updateWarpFilter(playerX: number, playerY: number) {
+  if (displacementFilter && displacementSprite) {
+    // Calculate distance from player to target
+    const distX = Math.abs(playerX - currentLevel.target.x);
+    const distY = Math.abs(playerY - currentLevel.target.y);
+    
+    // Calculate warp strength based on distance (farther = more warp)
+    const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
+    const normalizedDist = Math.min(Math.sqrt(distX ** 2 + distY ** 2) / maxDist, 1);
+    
+    // Scale displacement based on distance (farther = more warp)
+    const warpStrength = normalizedDist * 600; // Max displacement of 600 pixels
+    
+    // Apply position-based warping only
+    const waveX = Math.sin(playerX * 0.02) * warpStrength * 0.5 +
+                  Math.sin(playerY * 0.01) * warpStrength * 0.3;
+    const waveY = Math.cos(playerY * 0.015) * warpStrength * 0.5 +
+                  Math.cos(playerX * 0.012) * warpStrength * 0.3;
+    
+    // Update displacement filter
+    displacementFilter.scale.x = waveX;
+    displacementFilter.scale.y = waveY;
   }
+}
+
+function createCrosshair() {
+  if (crosshairGraphics) {
+    uiContainer.removeChild(crosshairGraphics);
+  }
+  
+  crosshairGraphics = new Graphics();
+  crosshairGraphics.lineStyle(3, isDragging ? 0xffffff : 0x000000);
+  crosshairGraphics.moveTo(guess.x - 12, guess.y - 12);
+  crosshairGraphics.lineTo(guess.x + 12, guess.y + 12);
+  crosshairGraphics.moveTo(guess.x + 12, guess.y - 12);
+  crosshairGraphics.lineTo(guess.x - 12, guess.y + 12);
+  crosshairGraphics.stroke();
+  
+  uiContainer.addChild(crosshairGraphics);
+}
+
+function createSuccessText() {
+  if (successText) {
+    uiContainer.removeChild(successText);
+  }
+  
+  successText = new Text({
+    text: "You found me!",
+    style: {
+      fontFamily: 'Arial',
+      fontSize: 40,
+      fill: 0xADD8E6,
+      align: 'center'
+    }
+  });
+  successText.x = TABLET_WIDTH / 2;
+  successText.y = TABLET_HEIGHT / 2;
+  
+  uiContainer.addChild(successText);
 }
 
 // --- Resize Handling ---
 function resizeCanvas() {
-  canvas.width = TABLET_WIDTH;
-  canvas.height = TABLET_HEIGHT;
-
   // Calculate total game container height: level-name + tablet-canvas
   const levelNameHeight = 40; // Approximate height of level-name (padding + font + border)
   const totalGameHeight = levelNameHeight + TABLET_HEIGHT;
@@ -167,46 +224,33 @@ resizeCanvas();
 createLevelSelector();
 levelNameDisplay.textContent = currentLevel.displayName;
 
+// Load initial level
+await loadLevel(0);
+
 // --- Game Loop ---
-function loop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // scale drawing so virtual space fits canvas
-  ctx.save();
-  ctx.scale(canvas.width / TABLET_WIDTH, canvas.height / TABLET_HEIGHT);
-
+function gameLoop() {
   const activeGuess = isDragging ? guess : committedGuess;
   const activePercentageGuess = {
     x: (activeGuess.x / TABLET_WIDTH) * 100,
     y: (activeGuess.y / TABLET_HEIGHT) * 100,
-  }
-  const dist = levelManager.distance(activePercentageGuess, currentLevel.target);
-  const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
+  };
 
-  const t = Math.min(dist / maxDist, 1);
-  const v = Math.round(255 * (1 - t));
-  const color = `rgb(${v}, ${v}, ${v})`;
+  // Update warp filter with current player position
+  updateWarpFilter(activePercentageGuess.x, activePercentageGuess.y);
 
-  // Draw background image if available
-  if (backgroundImage && backgroundImage.complete) {
-    drawWarpedImage(currentLevel.target.x, currentLevel.target.y, activePercentageGuess.x, activePercentageGuess.y);
-  } else {
-    // Draw color background if no image
-    ctx.fillStyle = color;
-    ctx.fillRect(0, 0, TABLET_WIDTH, TABLET_HEIGHT);
+  // Set background color if no image
+  if (!backgroundSprite) {
+    const dist = levelManager.distance(activePercentageGuess, currentLevel.target);
+    const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
+    const t = Math.min(dist / maxDist, 1);
+    const v = Math.round(255 * (1 - t));
+    app.renderer.background.color = (v << 16) | (v << 8) | v; // Convert to hex
   }
 
-  // draw guess X (white while dragging, black when dropped)
-  ctx.strokeStyle = isDragging ? "white" : "black";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(guess.x - 12, guess.y - 12);
-  ctx.lineTo(guess.x + 12, guess.y + 12);
-  ctx.moveTo(guess.x + 12, guess.y - 12);
-  ctx.lineTo(guess.x - 12, guess.y + 12);
-  ctx.stroke();
+  // Update crosshair
+  createCrosshair();
 
-  // success feedback: two quick pings, then show text
+  // Handle success animation
   if (successStartMs !== null) {
     const now = performance.now();
     const elapsed = now - successStartMs;
@@ -218,22 +262,24 @@ function loop() {
       { start: 2000, duration: 500, maxR: 50 },
     ];
 
-    const drawPing = (tStart: number, duration: number, maxR: number) => {
-      const t = Math.min((elapsed - tStart) / duration, 1);
-      const radius = 10 + t * maxR;
-      const alpha = 1 - t;
-      ctx.save();
-      ctx.strokeStyle = `rgba(173,216,230,${alpha.toFixed(3)})`;
-      ctx.lineWidth = 4 * (1 - t) + 1;
-      ctx.beginPath();
-      ctx.arc(committedGuess.x, committedGuess.y, radius, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    };
-
+    // Draw ping effects
     for (const p of pulses) {
       if (elapsed >= p.start && elapsed <= p.start + p.duration) {
-        drawPing(p.start, p.duration, p.maxR);
+        const t = Math.min((elapsed - p.start) / p.duration, 1);
+        const radius = 10 + t * p.maxR;
+        const alpha = 1 - t;
+        
+        const pingGraphics = new Graphics();
+        pingGraphics.circle(committedGuess.x, committedGuess.y, radius);
+        pingGraphics.stroke({ width: 4 * (1 - t) + 1, color: 0xADD8E6, alpha: alpha });
+        uiContainer.addChild(pingGraphics);
+        
+        // Remove ping after animation
+        setTimeout(() => {
+          if (uiContainer.children.includes(pingGraphics)) {
+            uiContainer.removeChild(pingGraphics);
+          }
+        }, p.duration);
       }
     }
 
@@ -242,27 +288,17 @@ function loop() {
     }
   }
 
-  if (successMessageVisible) {
-    ctx.fillStyle = "rgb(173, 216, 230)";
-    ctx.font = "40px sans-serif";
-    ctx.fillText("You found me!", TABLET_WIDTH / 2 - 100, TABLET_HEIGHT / 2);
+  // Show success text
+  if (successMessageVisible && !successText) {
+    createSuccessText();
+  } else if (!successMessageVisible && successText) {
+    uiContainer.removeChild(successText);
+    successText = null;
   }
-
-  ctx.restore();
-  requestAnimationFrame(loop);
 }
 
-loop();
-
-// update guess only on mousedown and support drag-to-move
-canvas.addEventListener("mousedown", () => {
-  // mouse is already mapped to virtual space via mousemove
-  isDragging = true;
-  successStartMs = null; // cancel any success animation while dragging
-  successMessageVisible = false;
-  guess.x = mouse.x;
-  guess.y = mouse.y;
-});
+// Start PIXI.js ticker
+app.ticker.add(gameLoop);
 
 // --- Input (map to virtual space) ---
 canvas.addEventListener("mousemove", (e: MouseEvent) => {
@@ -277,6 +313,15 @@ canvas.addEventListener("mousemove", (e: MouseEvent) => {
     guess.x = mouse.x;
     guess.y = mouse.y;
   }
+});
+
+canvas.addEventListener("mousedown", () => {
+  // mouse is already mapped to virtual space via mousemove
+  isDragging = true;
+  successStartMs = null; // cancel any success animation while dragging
+  successMessageVisible = false;
+  guess.x = mouse.x;
+  guess.y = mouse.y;
 });
 
 canvas.addEventListener("mouseup", () => {
