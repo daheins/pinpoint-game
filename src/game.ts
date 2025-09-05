@@ -23,8 +23,8 @@ interface Level {
 }
 
 // --- Virtual Resolution ---
-const VIRTUAL_WIDTH = 1440;
-const VIRTUAL_HEIGHT = 810;
+const TABLET_WIDTH = 1440;
+const TABLET_HEIGHT = 810;
 
 // --- Setup ---
 const canvas = document.getElementById("tablet-canvas") as HTMLCanvasElement;
@@ -34,8 +34,8 @@ const container = document.getElementById("game-container") as HTMLElement;
 const sizeWarning = document.getElementById("size-warning") as HTMLElement;
 const levelNameDisplay = document.getElementById("level-name") as HTMLElement;
 const levelGrid = document.getElementById("level-grid") as HTMLElement;
-container.style.width = `${VIRTUAL_WIDTH}px`;
-container.style.height = `${VIRTUAL_HEIGHT}px`;
+container.style.width = `${TABLET_WIDTH}px`;
+container.style.height = `${TABLET_HEIGHT}px`;
 
 // Available levels - dynamically loaded from levels folder and sorted by ID
 const levels: Level[] = Object.values(levelModules)
@@ -43,9 +43,9 @@ const levels: Level[] = Object.values(levelModules)
   .sort((a, b) => a.id - b.id);
 let currentLevel: Level = levels[0];
 let mouse: Point = { x: 0, y: 0 };
-let guess: Point = { x: VIRTUAL_WIDTH / 2, y: VIRTUAL_HEIGHT / 2 };
+let guess: Point = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
 let isDragging = false;
-let committedGuess: Point = { x: VIRTUAL_WIDTH / 2, y: VIRTUAL_HEIGHT / 2 };
+let committedGuess: Point = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
 let successStartMs: number | null = null;
 let successMessageVisible = false;
 let backgroundImage: HTMLImageElement | null = null;
@@ -88,8 +88,8 @@ function loadLevel(levelIndex: number) {
   }
   
   // Reset game state
-  guess = { x: VIRTUAL_WIDTH / 2, y: VIRTUAL_HEIGHT / 2 };
-  committedGuess = { x: VIRTUAL_WIDTH / 2, y: VIRTUAL_HEIGHT / 2 };
+  guess = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
+  committedGuess = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
   successStartMs = null;
   successMessageVisible = false;
   
@@ -110,42 +110,95 @@ function distance(a: Point, b: Point): number {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const bigint = parseInt(hex.replace("#", ""), 16);
-  return {
-    r: (bigint >> 16) & 255,
-    g: (bigint >> 8) & 255,
-    b: bigint & 255,
-  };
-}
+function drawWarpedImage(targetX: number, targetY: number, playerX: number, playerY: number) {
+  if (!backgroundImage || !backgroundImage.complete) return;
 
-function getHotColdColor(
-  dist: number,
-  maxDist: number,
-  nearColor: string,
-  farColor: string
-): string {
-  const t = Math.min(dist / maxDist, 1);
+  // console.log(`target: ${targetX}, ${targetY}, player: ${playerX}, ${playerY}`);
 
-  function blendChannel(c1: number, c2: number): number {
-    return Math.round(c1 + (c2 - c1) * t);
+  const dx = Math.abs(playerX - targetX);
+  const dy = Math.abs(playerY - targetY);
+
+  // Scale warp strength — tweak these numbers to taste
+  const wavelength = 5;      // controls frequency of waves
+  const ampX = dx / 10; // stronger warp if farther away
+  const ampY = dy / 10;
+
+  // // --- Horizontal wave (slice image into horizontal strips) ---
+  // const sliceHeight = 4; // thinner = smoother but more CPU
+  // for (let y = 0; y < TABLET_HEIGHT; y += sliceHeight) {
+  //   const offsetX = ampX * Math.sin(y / wavelength);
+  //   ctx.drawImage(
+  //     backgroundImage,
+  //     0, y, TABLET_WIDTH, sliceHeight,   // source slice
+  //     offsetX, y, TABLET_HEIGHT, sliceHeight // destination shifted slice
+  //   );
+  // }
+
+  // // --- Vertical wave (slice image into vertical strips) ---
+  // const sliceWidth = 20;
+  // for (let x = 0; x < TABLET_WIDTH; x += sliceWidth) {
+  //   const offsetY = ampY * Math.sin(x / wavelength);
+  //   ctx.drawImage(
+  //     backgroundImage,
+  //     x, 0, sliceWidth, TABLET_HEIGHT,   // source slice
+  //     x, offsetY, sliceWidth, TABLET_HEIGHT // destination shifted slice
+  //   );
+  // }
+  
+  // --- Combined warp (slice by rows) ---
+  const sliceHeight = 4;
+  for (let y = 0; y < TABLET_HEIGHT; y += sliceHeight) {
+    // Horizontal offset depends on Y
+    const offsetX = ampX * Math.sin(y / wavelength);
+
+    // Vertical offset depends on X distance — but we only have y here
+    // Trick: add a secondary sine to vary vertical shift by row
+    const offsetY = ampY * Math.sin((y + playerX) / wavelength);
+
+    ctx.drawImage(
+      backgroundImage,
+      0, y, TABLET_WIDTH, sliceHeight,          // source slice
+      offsetX, y + offsetY, TABLET_WIDTH, sliceHeight // destination
+    );
   }
-
-  const n = hexToRgb(nearColor);
-  const f = hexToRgb(farColor);
-
-  return `rgb(${blendChannel(n.r, f.r)}, ${blendChannel(n.g, f.g)}, ${blendChannel(n.b, f.b)})`;
 }
+
+// function hexToRgb(hex: string): { r: number; g: number; b: number } {
+//   const bigint = parseInt(hex.replace("#", ""), 16);
+//   return {
+//     r: (bigint >> 16) & 255,
+//     g: (bigint >> 8) & 255,
+//     b: bigint & 255,
+//   };
+// }
+
+// function getHotColdColor(
+//   dist: number,
+//   maxDist: number,
+//   nearColor: string,
+//   farColor: string
+// ): string {
+//   const t = Math.min(dist / maxDist, 1);
+
+//   function blendChannel(c1: number, c2: number): number {
+//     return Math.round(c1 + (c2 - c1) * t);
+//   }
+
+//   const n = hexToRgb(nearColor);
+//   const f = hexToRgb(farColor);
+
+//   return `rgb(${blendChannel(n.r, f.r)}, ${blendChannel(n.g, f.g)}, ${blendChannel(n.b, f.b)})`;
+// }
 
 // --- Resize Handling ---
 function resizeCanvas() {
-  canvas.width = VIRTUAL_WIDTH;
-  canvas.height = VIRTUAL_HEIGHT;
+  canvas.width = TABLET_WIDTH;
+  canvas.height = TABLET_HEIGHT;
 
   // Calculate total game container height: level-name + tablet-canvas
   const levelNameHeight = 40; // Approximate height of level-name (padding + font + border)
-  const totalGameHeight = levelNameHeight + VIRTUAL_HEIGHT;
-  const totalGameWidth = VIRTUAL_WIDTH;
+  const totalGameHeight = levelNameHeight + TABLET_HEIGHT;
+  const totalGameWidth = TABLET_WIDTH;
 
   const tooSmall = window.innerWidth < totalGameWidth || window.innerHeight < totalGameHeight;
 
@@ -170,16 +223,15 @@ function loop() {
 
   // scale drawing so virtual space fits canvas
   ctx.save();
-  ctx.scale(canvas.width / VIRTUAL_WIDTH, canvas.height / VIRTUAL_HEIGHT);
+  ctx.scale(canvas.width / TABLET_WIDTH, canvas.height / TABLET_HEIGHT);
 
-  // Convert percentage coordinates to pixel coordinates
-  const target = {
-    x: (currentLevel.target.x / 100) * VIRTUAL_WIDTH,
-    y: (currentLevel.target.y / 100) * VIRTUAL_HEIGHT
-  };
-  const activePoint = isDragging ? guess : committedGuess;
-  const dist = distance(activePoint, target);
-  const maxDist = Math.sqrt(VIRTUAL_WIDTH ** 2 + VIRTUAL_HEIGHT ** 2);
+  const activeGuess = isDragging ? guess : committedGuess;
+  const activePercentageGuess = {
+    x: (activeGuess.x / TABLET_WIDTH) * 100,
+    y: (activeGuess.y / TABLET_HEIGHT) * 100,
+  }
+  const dist = distance(activePercentageGuess, currentLevel.target);
+  const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
 
   const t = Math.min(dist / maxDist, 1);
   const v = Math.round(255 * (1 - t));
@@ -187,11 +239,11 @@ function loop() {
 
   // Draw background image if available
   if (backgroundImage && backgroundImage.complete) {
-    ctx.drawImage(backgroundImage, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    drawWarpedImage(currentLevel.target.x, currentLevel.target.y, activePercentageGuess.x, activePercentageGuess.y);
   } else {
     // Draw color background if no image
     ctx.fillStyle = color;
-    ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    ctx.fillRect(0, 0, TABLET_WIDTH, TABLET_HEIGHT);
   }
 
   // draw guess X (white while dragging, black when dropped)
@@ -243,7 +295,7 @@ function loop() {
   if (successMessageVisible) {
     ctx.fillStyle = "rgb(173, 216, 230)";
     ctx.font = "40px sans-serif";
-    ctx.fillText("You found it!", VIRTUAL_WIDTH / 2 - 100, VIRTUAL_HEIGHT / 2);
+    ctx.fillText("You found it!", TABLET_WIDTH / 2 - 100, TABLET_HEIGHT / 2);
   }
 
   ctx.restore();
@@ -265,8 +317,8 @@ canvas.addEventListener("mousedown", () => {
 // --- Input (map to virtual space) ---
 canvas.addEventListener("mousemove", (e: MouseEvent) => {
   const rect = canvas.getBoundingClientRect();
-  const scaleX = VIRTUAL_WIDTH / rect.width;
-  const scaleY = VIRTUAL_HEIGHT / rect.height;
+  const scaleX = TABLET_WIDTH / rect.width;
+  const scaleY = TABLET_HEIGHT / rect.height;
 
   mouse.x = (e.clientX - rect.left) * scaleX;
   mouse.y = (e.clientY - rect.top) * scaleY;
@@ -284,8 +336,8 @@ canvas.addEventListener("mouseup", () => {
 
   // Check success only on drop
   const target = {
-    x: (currentLevel.target.x / 100) * VIRTUAL_WIDTH,
-    y: (currentLevel.target.y / 100) * VIRTUAL_HEIGHT
+    x: (currentLevel.target.x / 100) * TABLET_WIDTH,
+    y: (currentLevel.target.y / 100) * TABLET_HEIGHT
   };
   const wasFound = distance(committedGuess, target) < currentLevel.settings.radius;
   if (wasFound) {
