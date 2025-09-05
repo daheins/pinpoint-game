@@ -1,26 +1,9 @@
 // Dynamically import all level files
 const levelModules = import.meta.glob('./levels/*.json', { eager: true });
 
-// --- Types ---
-interface Point {
-  x: number;
-  y: number;
-}
-
-interface LevelSettings {
-  targetColor: string;
-  farColor: string;
-  radius: number;
-}
-
-interface Level {
-  id: number;
-  displayName: string;
-  target: Point;
-  image?: string;
-  feedback: "hotCold";
-  settings: LevelSettings;
-}
+// Import level types and utilities
+import type { Point, Level } from './level';
+import { LevelManager } from './level';
 
 // --- Virtual Resolution ---
 const TABLET_WIDTH = 1440;
@@ -39,9 +22,9 @@ container.style.height = `${TABLET_HEIGHT}px`;
 
 // Available levels - dynamically loaded from levels folder and sorted by ID
 const levels: Level[] = Object.values(levelModules)
-  .map(module => (module as any).default as Level)
-  .sort((a, b) => a.id - b.id);
-let currentLevel: Level = levels[0];
+  .map(module => (module as any).default as Level);
+const levelManager = new LevelManager(levels);
+let currentLevel: Level = levelManager.getCurrentLevel();
 let mouse: Point = { x: 0, y: 0 };
 let guess: Point = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
 let isDragging = false;
@@ -54,7 +37,7 @@ let backgroundImage: HTMLImageElement | null = null;
 function createLevelSelector() {
   levelGrid.innerHTML = "";
   
-  levels.forEach((level, index) => {
+  levelManager.getAllLevels().forEach((level, index) => {
     const levelBox = document.createElement("div");
     levelBox.className = "level-box";
     levelBox.textContent = level.id.toString();
@@ -69,7 +52,7 @@ function createLevelSelector() {
 }
 
 function loadLevel(levelIndex: number) {
-  currentLevel = levels[levelIndex];
+  currentLevel = levelManager.loadLevel(levelIndex);
   levelNameDisplay.textContent = currentLevel.displayName;
   
   // Load background image if level has one
@@ -104,12 +87,6 @@ function loadLevel(levelIndex: number) {
 }
 
 // --- Helpers ---
-function distance(a: Point, b: Point): number {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
 function drawWarpedImage(targetX: number, targetY: number, playerX: number, playerY: number) {
   if (!backgroundImage || !backgroundImage.complete) return;
 
@@ -163,33 +140,6 @@ function drawWarpedImage(targetX: number, targetY: number, playerX: number, play
   }
 }
 
-// function hexToRgb(hex: string): { r: number; g: number; b: number } {
-//   const bigint = parseInt(hex.replace("#", ""), 16);
-//   return {
-//     r: (bigint >> 16) & 255,
-//     g: (bigint >> 8) & 255,
-//     b: bigint & 255,
-//   };
-// }
-
-// function getHotColdColor(
-//   dist: number,
-//   maxDist: number,
-//   nearColor: string,
-//   farColor: string
-// ): string {
-//   const t = Math.min(dist / maxDist, 1);
-
-//   function blendChannel(c1: number, c2: number): number {
-//     return Math.round(c1 + (c2 - c1) * t);
-//   }
-
-//   const n = hexToRgb(nearColor);
-//   const f = hexToRgb(farColor);
-
-//   return `rgb(${blendChannel(n.r, f.r)}, ${blendChannel(n.g, f.g)}, ${blendChannel(n.b, f.b)})`;
-// }
-
 // --- Resize Handling ---
 function resizeCanvas() {
   canvas.width = TABLET_WIDTH;
@@ -230,7 +180,7 @@ function loop() {
     x: (activeGuess.x / TABLET_WIDTH) * 100,
     y: (activeGuess.y / TABLET_HEIGHT) * 100,
   }
-  const dist = distance(activePercentageGuess, currentLevel.target);
+  const dist = levelManager.distance(activePercentageGuess, currentLevel.target);
   const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
 
   const t = Math.min(dist / maxDist, 1);
@@ -295,7 +245,7 @@ function loop() {
   if (successMessageVisible) {
     ctx.fillStyle = "rgb(173, 216, 230)";
     ctx.font = "40px sans-serif";
-    ctx.fillText("You found it!", TABLET_WIDTH / 2 - 100, TABLET_HEIGHT / 2);
+    ctx.fillText("You found me!", TABLET_WIDTH / 2 - 100, TABLET_HEIGHT / 2);
   }
 
   ctx.restore();
@@ -339,7 +289,7 @@ canvas.addEventListener("mouseup", () => {
     x: (currentLevel.target.x / 100) * TABLET_WIDTH,
     y: (currentLevel.target.y / 100) * TABLET_HEIGHT
   };
-  const wasFound = distance(committedGuess, target) < currentLevel.settings.radius;
+  const wasFound = levelManager.isGuessSuccessful(committedGuess, target, currentLevel.settings.radius);
   if (wasFound) {
     successStartMs = performance.now();
   } else {
