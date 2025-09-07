@@ -128,7 +128,7 @@ function createSuccessText() {
     uiContainer.removeChild(successText);
   }
   
-  successText = new Text({
+  const text = new Text({
     text: "You found me!",
     style: {
       fontFamily: 'Arial',
@@ -137,10 +137,31 @@ function createSuccessText() {
       align: 'center'
     }
   });
-  successText.x = TABLET_WIDTH / 2;
-  successText.y = TABLET_HEIGHT / 2;
   
-  uiContainer.addChild(successText);
+  // Set anchor to center for proper centering
+  text.anchor.set(0.5, 0.5);
+  
+  // Create background rectangle for better visibility
+  const backgroundGraphics = new Graphics();
+  const padding = 20;
+  const bgWidth = text.width + (padding * 2);
+  const bgHeight = text.height + (padding * 2);
+  
+  backgroundGraphics.rect(-bgWidth / 2, -bgHeight / 2, bgWidth, bgHeight);
+  backgroundGraphics.fill({ color: 0x000000, alpha: 0.7 });
+  backgroundGraphics.stroke({ width: 2, color: 0xADD8E6, alpha: 0.8 });
+  
+  // Add background to text container
+  const textContainer = new Container();
+  textContainer.addChild(backgroundGraphics);
+  textContainer.addChild(text);
+  textContainer.x = TABLET_WIDTH / 2;
+  textContainer.y = TABLET_HEIGHT / 2;
+  
+  uiContainer.addChild(textContainer);
+  
+  // Store reference to the container
+  successText = textContainer as any;
 }
 
 // --- Resize Handling ---
