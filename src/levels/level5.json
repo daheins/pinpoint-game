@@ -2,7 +2,7 @@
   "id": 5,
   "displayName": "Level 5",
   "target": { "x": 61.6, "y": 70.9 },
-  "puzzleImage": "genshinFireworks.webp",
+  "jigsawImage": "genshinFireworks.webp",
   "feedback": "hotCold",
   "settings": {
     "targetColor": "#00FF00",

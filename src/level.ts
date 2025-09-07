@@ -1,6 +1,6 @@
 // Level-related types and logic for the pinpoint game
 
-import { Application, Sprite, Assets, Container, DisplacementFilter } from "pixi.js";
+import { Application, Sprite, Assets, Container, DisplacementFilter, Texture, Rectangle } from "pixi.js";
 
 export interface Point {
   x: number;
@@ -24,7 +24,7 @@ export interface Level {
   target: Point;
   image?: string;
   multiImage?: MultiImageElement[];
-  puzzleImage?: string;
+  jigsawImage?: string;
   feedback: "hotCold";
   settings: LevelSettings;
 }
@@ -91,6 +91,123 @@ export class LevelManager {
   }
 }
 
+// A type to store each puzzle piece's data
+interface PuzzlePiece {
+  sprite: Sprite;
+  trueX: number;
+  trueY: number;
+  offsetX: number;
+  offsetY: number;
+}
+
+export class ScatterPuzzle {
+  private container: Container;
+  private pieces: PuzzlePiece[] = [];
+  private image: Texture;
+  private app: Application;
+  private target: { x: number; y: number };
+  private jigsawGridSize = 10; // 10x10 grid
+  private currentGuess: { x: number; y: number } = { x: 0, y: 0 };
+  private levelRadius: number;
+
+  constructor(app: Application, image: Texture, target: { x: number; y: number }, parentContainer: Container, levelRadius: number) {
+    this.app = app;
+    this.image = image;
+    this.target = target;
+    this.levelRadius = levelRadius;
+    this.container = new Container();
+    parentContainer.addChild(this.container);
+
+    this.createPieces();
+    this.app.ticker.add(this.update);
+  }
+
+  private createPieces() {
+    const width = this.app.renderer.width;
+    const height = this.app.renderer.height;
+    const pieceW = width / this.jigsawGridSize;
+    const pieceH = height / this.jigsawGridSize;
+
+    for (let row = 0; row < this.jigsawGridSize; row++) {
+      for (let col = 0; col < this.jigsawGridSize; col++) {
+        const frame = new Rectangle(col * pieceW, row * pieceH, pieceW, pieceH);
+        const texture = new Texture({ source: this.image.source, frame });
+
+        const sprite = new Sprite(texture);
+        sprite.x = col * pieceW;
+        sprite.y = row * pieceH;
+
+        // Random offset direction (unit vector × random magnitude)
+        const angle = Math.random() * Math.PI * 2;
+        const magnitude = 200 + Math.random() * 600; // scatter distance
+        const offsetX = Math.cos(angle) * magnitude;
+        const offsetY = Math.sin(angle) * magnitude;
+
+        this.container.addChild(sprite);
+        this.pieces.push({
+          sprite,
+          trueX: col * pieceW,
+          trueY: row * pieceH,
+          offsetX,
+          offsetY,
+        });
+      }
+    }
+  }
+
+  private update = () => {
+    const dx = this.currentGuess.x - this.target.x;
+    const dy = this.currentGuess.y - this.target.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // scatter factor increases linearly with distance (no maximum limit)
+    const scatterFactor = dist / 400; // adjust divisor for sensitivity
+
+    const canvasWidth = this.app.renderer.width;
+    const canvasHeight = this.app.renderer.height;
+
+    for (const piece of this.pieces) {
+      let newX = piece.trueX + scatterFactor * piece.offsetX;
+      let newY = piece.trueY + scatterFactor * piece.offsetY;
+      
+      // Only apply wrapping when we're outside the level radius
+      // This allows pieces to be at their exact true positions when close to target
+      if (dist > this.levelRadius) {
+        // Special handling for edge pieces (trueX = 0 or trueY = 0)
+        // Allow them to have slightly negative positions to avoid wrapping
+        if (piece.trueX === 0 && newX < 0) {
+          // Keep left edge pieces at negative X when scattered left
+          newX = newX;
+        } else {
+          // Apply wrapping using modulo operations for non-edge pieces
+          newX = ((newX % canvasWidth) + canvasWidth) % canvasWidth;
+        }
+        
+        if (piece.trueY === 0 && newY < 0) {
+          // Keep top edge pieces at negative Y when scattered up
+          newY = newY;
+        } else {
+          // Apply wrapping using modulo operations for non-edge pieces
+          newY = ((newY % canvasHeight) + canvasHeight) % canvasHeight;
+        }
+      }
+      
+      piece.sprite.x = newX;
+      piece.sprite.y = newY;
+    }
+  };
+
+  updateGuess(guess: { x: number; y: number }) {
+    this.currentGuess = guess;
+  }
+
+  destroy() {
+    this.app.ticker.remove(this.update);
+    this.container.destroy({ children: true });
+    this.pieces = [];
+  }
+}
+
 // Level renderer class to handle all visual rendering logic
 export class LevelRenderer {
   private app: Application;
@@ -99,6 +216,7 @@ export class LevelRenderer {
   private backgroundSprites: Sprite[] = [];
   private displacementFilter: DisplacementFilter | null = null;
   private displacementSprite: Sprite | null = null;
+  private scatterPuzzle: ScatterPuzzle | null = null;
   private canvasWidth: number;
   private canvasHeight: number;
 
@@ -121,6 +239,12 @@ export class LevelRenderer {
       this.backgroundContainer.removeChild(sprite);
     });
     this.backgroundSprites = [];
+    
+    // Clear previous jigsaw puzzle
+    if (this.scatterPuzzle) {
+      this.scatterPuzzle.destroy();
+      this.scatterPuzzle = null;
+    }
     
     // Clear any existing filters on the container
     (this.backgroundContainer as any).filters = undefined;
@@ -165,6 +289,19 @@ export class LevelRenderer {
         }
       } catch (error) {
         console.error(`Failed to load multi-image level:`, error);
+      }
+    } else if (level.jigsawImage) {
+      // Handle jigsaw puzzle levels
+      try {
+        const texture = await Assets.load(`/images/${level.jigsawImage}`);
+        const target = {
+          x: (level.target.x / 100) * this.canvasWidth,
+          y: (level.target.y / 100) * this.canvasHeight
+        };
+        this.scatterPuzzle = new ScatterPuzzle(this.app, texture, target, this.backgroundContainer, level.settings.radius);
+      } catch (error) {
+        console.error(`Failed to load jigsaw image: /images/${level.jigsawImage}`, error);
+        this.scatterPuzzle = null;
       }
     } else {
       this.backgroundSprite = null;
@@ -218,7 +355,7 @@ export class LevelRenderer {
 
   updateBackgroundColor(activePercentageGuess: Point, level: Level): void {
     // Set background color if no image
-    if (!this.backgroundSprite && this.backgroundSprites.length === 0) {
+    if (!this.backgroundSprite && this.backgroundSprites.length === 0 && !this.scatterPuzzle) {
       const dist = LevelManager.distance(activePercentageGuess, level.target);
       const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
       const t = Math.min(dist / maxDist, 1);
@@ -227,8 +364,19 @@ export class LevelRenderer {
     }
   }
 
+  updateJigsawPuzzle(activePercentageGuess: Point): void {
+    // Update jigsaw puzzle with current active guess position
+    if (this.scatterPuzzle) {
+      const pixelGuess = {
+        x: (activePercentageGuess.x / 100) * this.canvasWidth,
+        y: (activePercentageGuess.y / 100) * this.canvasHeight
+      };
+      this.scatterPuzzle.updateGuess(pixelGuess);
+    }
+  }
+
   hasBackground(): boolean {
-    return this.backgroundSprite !== null || this.backgroundSprites.length > 0;
+    return this.backgroundSprite !== null || this.backgroundSprites.length > 0 || this.scatterPuzzle !== null;
   }
 
   drawLevel(activePercentageGuess: Point, level: Level): void {
@@ -237,6 +385,9 @@ export class LevelRenderer {
     
     // Update multi-image alpha for multi-image levels
     this.updateMultiImageAlpha(activePercentageGuess, level);
+    
+    // Update jigsaw puzzle for jigsaw levels
+    this.updateJigsawPuzzle(activePercentageGuess);
     
     // Update background color for levels without images
     this.updateBackgroundColor(activePercentageGuess, level);

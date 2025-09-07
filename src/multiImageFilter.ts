@@ -1,5 +1,3 @@
-import { Filter } from "pixi.js";
-
 // Clean slate minimal filter that adheres strictly to Pixi v8 filter conventions.
 // Geometry provides: aPosition, aUV; uniform: uProjectionMatrix; system binds uTexture.
 // export function createMinimalFilter(): Filter {
