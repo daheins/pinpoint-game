@@ -58,7 +58,7 @@ let currentLevel: Level = levelManager.getCurrentLevel();
 let mouse: Point = { x: 0, y: 0 };
 let guess: Point = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
 let isDragging = false;
-let committedGuess: Point = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
+let isMouseButtonPressed = false;
 let successStartMs: number | null = null;
 let successMessageVisible = false;
 let crosshairGraphics: Graphics | null = null;
@@ -91,7 +91,6 @@ async function loadLevel(levelIndex: number) {
   
   // Reset game state
   guess = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
-  committedGuess = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
   successStartMs = null;
   successMessageVisible = false;
   
@@ -193,17 +192,29 @@ await loadLevel(0);
 
 // --- Game Loop ---
 function gameLoop() {
-  const activeGuess = isDragging ? guess : committedGuess;
+  // Always use current guess position
   const activePercentageGuess = {
-    x: (activeGuess.x / TABLET_WIDTH) * 100,
-    y: (activeGuess.y / TABLET_HEIGHT) * 100,
+    x: (guess.x / TABLET_WIDTH) * 100,
+    y: (guess.y / TABLET_HEIGHT) * 100,
   };
 
   // Update level-specific rendering
   levelRenderer.drawLevel(activePercentageGuess, currentLevel);
 
-  // Update crosshair
+  // Update crosshair (use same logic as renderer)
   createCrosshair();
+
+  // Check for success only when mouse is not pressed
+  if (!isMouseButtonPressed && successStartMs === null) {
+    const target = {
+      x: (currentLevel.target.x / 100) * TABLET_WIDTH,
+      y: (currentLevel.target.y / 100) * TABLET_HEIGHT
+    };
+    const wasFound = levelManager.isGuessSuccessful(guess, target, currentLevel.settings.radius);
+    if (wasFound) {
+      successStartMs = performance.now();
+    }
+  }
 
   // Handle success animation
   if (successStartMs !== null) {
@@ -225,7 +236,7 @@ function gameLoop() {
         const alpha = 1 - t;
         
         const pingGraphics = new Graphics();
-        pingGraphics.circle(committedGuess.x, committedGuess.y, radius);
+        pingGraphics.circle(guess.x, guess.y, radius);
         pingGraphics.stroke({ width: 4 * (1 - t) + 1, color: 0xADD8E6, alpha: alpha });
         uiContainer.addChild(pingGraphics);
         
@@ -273,6 +284,7 @@ canvas.addEventListener("mousemove", (e: MouseEvent) => {
 canvas.addEventListener("mousedown", () => {
   // mouse is already mapped to virtual space via mousemove
   isDragging = true;
+  isMouseButtonPressed = true;
   successStartMs = null; // cancel any success animation while dragging
   successMessageVisible = false;
   guess.x = mouse.x;
@@ -281,23 +293,24 @@ canvas.addEventListener("mousedown", () => {
 
 canvas.addEventListener("mouseup", () => {
   isDragging = false;
-  committedGuess.x = guess.x;
-  committedGuess.y = guess.y;
-
-  // Check success only on drop
-  const target = {
-    x: (currentLevel.target.x / 100) * TABLET_WIDTH,
-    y: (currentLevel.target.y / 100) * TABLET_HEIGHT
-  };
-  const wasFound = levelManager.isGuessSuccessful(committedGuess, target, currentLevel.settings.radius);
-  if (wasFound) {
-    successStartMs = performance.now();
-  } else {
-    successStartMs = null;
-    successMessageVisible = false;
-  }
+  isMouseButtonPressed = false;
 });
 
 canvas.addEventListener("mouseleave", () => {
+  isDragging = false;
+});
+
+canvas.addEventListener("mouseenter", () => {
+  // If mouse button is still pressed when entering canvas, resume dragging
+  if (isMouseButtonPressed) {
+    isDragging = true;
+    guess.x = mouse.x;
+    guess.y = mouse.y;
+  }
+});
+
+// Global mouseup listener to catch mouse releases that happen off-canvas
+document.addEventListener("mouseup", () => {
+  isMouseButtonPressed = false;
   isDragging = false;
 });
