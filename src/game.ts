@@ -5,12 +5,11 @@ const levelModules = import.meta.glob('./levels/*.json', { eager: true });
 import type { Point, Level } from './level';
 import { LevelManager, LevelRenderer } from './level';
 
+// Import game parameters
+import { TABLET_WIDTH, TABLET_HEIGHT, shouldDisplayGuessCoors } from './gameParams';
+
 import { Application, Container, Graphics, Text } from "pixi.js";
 // import { createMinimalFilter } from './multiImageFilter';
-
-// --- Virtual Resolution ---
-const TABLET_WIDTH = 1440;
-const TABLET_HEIGHT = 810;
 
 // --- Level Renderer ---
 let levelRenderer: LevelRenderer;
@@ -63,6 +62,7 @@ let successStartMs: number | null = null;
 let successMessageVisible = false;
 let crosshairGraphics: Graphics | null = null;
 let successText: Text | null = null;
+let coordinateDisplay: Text | null = null;
 
 // --- Level Management ---
 function createLevelSelector() {
@@ -163,6 +163,55 @@ function createSuccessText() {
   successText = textContainer as any;
 }
 
+function createCoordinateDisplay() {
+  if (coordinateDisplay) {
+    uiContainer.removeChild(coordinateDisplay);
+  }
+  
+  if (shouldDisplayGuessCoors) {
+    const activePercentageGuess = {
+      x: (guess.x / TABLET_WIDTH) * 100,
+      y: (guess.y / TABLET_HEIGHT) * 100,
+    };
+    
+    const text = new Text({
+      text: `(x: ${activePercentageGuess.x.toFixed(1)}, y: ${activePercentageGuess.y.toFixed(1)})`,
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 16,
+        fill: 0xFFFFFF,
+        align: 'right'
+      }
+    });
+    
+    // Create background rectangle
+    const backgroundGraphics = new Graphics();
+    const padding = 8;
+    const bgWidth = text.width + (padding * 2);
+    const bgHeight = text.height + (padding * 2);
+    
+    backgroundGraphics.rect(0, 0, bgWidth, bgHeight);
+    backgroundGraphics.fill({ color: 0x000000, alpha: 0.7 });
+    backgroundGraphics.stroke({ width: 1, color: 0xFFFFFF, alpha: 0.5 });
+    
+    // Create container for background and text
+    const coordinateContainer = new Container();
+    coordinateContainer.addChild(backgroundGraphics);
+    coordinateContainer.addChild(text);
+    
+    // Position text within the container
+    text.x = padding;
+    text.y = padding;
+    
+    // Position container in bottom right corner with some padding
+    coordinateContainer.x = TABLET_WIDTH - bgWidth - 10;
+    coordinateContainer.y = TABLET_HEIGHT - bgHeight - 10;
+    
+    uiContainer.addChild(coordinateContainer);
+    coordinateDisplay = coordinateContainer as any;
+  }
+}
+
 // --- Resize Handling ---
 function resizeCanvas() {
   // Calculate total game container height: level-name + tablet-canvas
@@ -203,6 +252,9 @@ function gameLoop() {
 
   // Update crosshair (use same logic as renderer)
   createCrosshair();
+  
+  // Update coordinate display
+  createCoordinateDisplay();
 
   // Check for success only when mouse is not pressed
   if (!isMouseButtonPressed && successStartMs === null) {
