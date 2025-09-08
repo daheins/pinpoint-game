@@ -260,13 +260,13 @@ export class LevelRenderer {
     // Load background image if level has one
     if (level.image) {
       try {
-        const texture = await Assets.load(`/images/${level.image}`);
+        const texture = await Assets.load(`${import.meta.env.BASE_URL}images/${level.image}`);
         this.backgroundSprite = new Sprite(texture);
         this.backgroundSprite.width = this.canvasWidth;
         this.backgroundSprite.height = this.canvasHeight;
         
         // Create displacement texture for warping effect
-        const displacementTexture = await Assets.load(`/images/${level.image}`);
+        const displacementTexture = await Assets.load(`${import.meta.env.BASE_URL}images/${level.image}`);
         this.displacementSprite = new Sprite(displacementTexture);
         this.displacementSprite.width = this.canvasWidth;
         this.displacementSprite.height = this.canvasHeight;
@@ -280,7 +280,7 @@ export class LevelRenderer {
         this.backgroundSprite.filters = [this.displacementFilter];
         this.backgroundContainer.addChild(this.backgroundSprite);
       } catch (error) {
-        console.error(`Failed to load image: /images/${level.image}`, error);
+        console.error(`Failed to load image: ${import.meta.env.BASE_URL}images/${level.image}`, error);
         this.backgroundSprite = null;
       }
     }
@@ -290,7 +290,7 @@ export class LevelRenderer {
       try {
         // Load all images and create sprites
         for (const imageElement of level.multiImage) {
-          const texture = await Assets.load(`/images/${imageElement.image}`);
+          const texture = await Assets.load(`${import.meta.env.BASE_URL}images/${imageElement.image}`);
           const sprite = new Sprite(texture);
           sprite.width = this.canvasWidth;
           sprite.height = this.canvasHeight;
@@ -305,13 +305,13 @@ export class LevelRenderer {
     // Load fixed image if level has one (no displacement filter, static rendering)
     if (level.fixedImage) {
       try {
-        const texture = await Assets.load(`/images/${level.fixedImage}`);
+        const texture = await Assets.load(`${import.meta.env.BASE_URL}images/${level.fixedImage}`);
         this.fixedImageSprite = new Sprite(texture);
         this.fixedImageSprite.width = this.canvasWidth;
         this.fixedImageSprite.height = this.canvasHeight;
         this.backgroundContainer.addChild(this.fixedImageSprite);
       } catch (error) {
-        console.error(`Failed to load fixed image: /images/${level.fixedImage}`, error);
+        console.error(`Failed to load fixed image: ${import.meta.env.BASE_URL}images/${level.fixedImage}`, error);
         this.fixedImageSprite = null;
       }
     }
@@ -319,14 +319,14 @@ export class LevelRenderer {
     // Handle jigsaw puzzle levels (only if no other image types)
     if (level.jigsawImage && !level.image && !level.multiImage) {
       try {
-        const texture = await Assets.load(`/images/${level.jigsawImage}`);
+        const texture = await Assets.load(`${import.meta.env.BASE_URL}images/${level.jigsawImage}`);
         const target = {
           x: (level.target.x / 100) * this.canvasWidth,
           y: (level.target.y / 100) * this.canvasHeight
         };
         this.scatterPuzzle = new ScatterPuzzle(this.app, texture, target, this.backgroundContainer, level.settings.radius);
       } catch (error) {
-        console.error(`Failed to load jigsaw image: /images/${level.jigsawImage}`, error);
+        console.error(`Failed to load jigsaw image: ${import.meta.env.BASE_URL}images/${level.jigsawImage}`, error);
         this.scatterPuzzle = null;
       }
     }

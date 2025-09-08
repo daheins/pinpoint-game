@@ -1,5 +1,33 @@
-// Dynamically import all level files
-const levelModules = import.meta.glob('./levels/*.json', { eager: true });
+// Function to dynamically load all level files from public directory
+async function loadLevels(): Promise<Level[]> {
+  const levelFiles = [
+    'level1.json',
+    'level2.json', 
+    'level3.json',
+    'level4.json',
+    'level5.json',
+    'level6.json'
+  ];
+  
+  const levels: Level[] = [];
+  
+  for (const filename of levelFiles) {
+    try {
+      const url = `${import.meta.env.BASE_URL}levels/${filename}`;
+      const response = await fetch(url);
+      
+      if (response.ok) {
+        const levelData = await response.json();
+        levels.push(levelData);
+      } else {
+        console.warn(`Failed to load level: ${filename} - Status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error(`Error loading level ${filename}:`, error);
+    }
+  }
+  return levels;
+}
 
 // Import level types and utilities
 import type { Point, Level } from './level';
@@ -50,8 +78,7 @@ gameContainer.addChild(uiContainer);
 levelRenderer = new LevelRenderer(app, backgroundContainer, TABLET_WIDTH, TABLET_HEIGHT);
 
 // Available levels - dynamically loaded from levels folder and sorted by ID
-const levels: Level[] = Object.values(levelModules)
-  .map(module => (module as any).default as Level);
+const levels: Level[] = await loadLevels();
 const levelManager = new LevelManager(levels);
 let currentLevel: Level = levelManager.getCurrentLevel();
 let mouse: Point = { x: 0, y: 0 };
