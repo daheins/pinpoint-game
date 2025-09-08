@@ -23,6 +23,7 @@ export interface Level {
   displayName: string;
   target: Point;
   image?: string;
+  fixedImage?: string;
   multiImage?: MultiImageElement[];
   jigsawImage?: string;
   feedback: "hotCold";
@@ -213,6 +214,7 @@ export class LevelRenderer {
   private app: Application;
   private backgroundContainer: Container;
   private backgroundSprite: Sprite | null = null;
+  private fixedImageSprite: Sprite | null = null;
   private backgroundSprites: Sprite[] = [];
   private displacementFilter: DisplacementFilter | null = null;
   private displacementSprite: Sprite | null = null;
@@ -234,6 +236,12 @@ export class LevelRenderer {
       this.backgroundSprite = null;
     }
     
+    // Clear previous fixed image
+    if (this.fixedImageSprite) {
+      this.backgroundContainer.removeChild(this.fixedImageSprite);
+      this.fixedImageSprite = null;
+    }
+    
     // Clear previous multi-image backgrounds
     this.backgroundSprites.forEach(sprite => {
       this.backgroundContainer.removeChild(sprite);
@@ -249,7 +257,7 @@ export class LevelRenderer {
     // Clear any existing filters on the container
     (this.backgroundContainer as any).filters = undefined;
     
-    // Load background image(s) if level has them
+    // Load background image if level has one
     if (level.image) {
       try {
         const texture = await Assets.load(`/images/${level.image}`);
@@ -275,8 +283,10 @@ export class LevelRenderer {
         console.error(`Failed to load image: /images/${level.image}`, error);
         this.backgroundSprite = null;
       }
-    } else if (level.multiImage) {
-      // Handle multi-image levels
+    }
+
+    // Load multi-image elements if level has them
+    if (level.multiImage) {
       try {
         // Load all images and create sprites
         for (const imageElement of level.multiImage) {
@@ -290,8 +300,24 @@ export class LevelRenderer {
       } catch (error) {
         console.error(`Failed to load multi-image level:`, error);
       }
-    } else if (level.jigsawImage) {
-      // Handle jigsaw puzzle levels
+    }
+    
+    // Load fixed image if level has one (no displacement filter, static rendering)
+    if (level.fixedImage) {
+      try {
+        const texture = await Assets.load(`/images/${level.fixedImage}`);
+        this.fixedImageSprite = new Sprite(texture);
+        this.fixedImageSprite.width = this.canvasWidth;
+        this.fixedImageSprite.height = this.canvasHeight;
+        this.backgroundContainer.addChild(this.fixedImageSprite);
+      } catch (error) {
+        console.error(`Failed to load fixed image: /images/${level.fixedImage}`, error);
+        this.fixedImageSprite = null;
+      }
+    }
+    
+    // Handle jigsaw puzzle levels (only if no other image types)
+    if (level.jigsawImage && !level.image && !level.multiImage) {
       try {
         const texture = await Assets.load(`/images/${level.jigsawImage}`);
         const target = {
@@ -303,8 +329,10 @@ export class LevelRenderer {
         console.error(`Failed to load jigsaw image: /images/${level.jigsawImage}`, error);
         this.scatterPuzzle = null;
       }
-    } else {
-      this.backgroundSprite = null;
+    }
+    
+    // Clean up unused properties
+    if (!level.image) {
       this.displacementFilter = null;
       this.displacementSprite = null;
     }
@@ -355,7 +383,7 @@ export class LevelRenderer {
 
   updateBackgroundColor(activePercentageGuess: Point, level: Level): void {
     // Set background color if no image
-    if (!this.backgroundSprite && this.backgroundSprites.length === 0 && !this.scatterPuzzle) {
+    if (!this.backgroundSprite && !this.fixedImageSprite && this.backgroundSprites.length === 0 && !this.scatterPuzzle) {
       const dist = LevelManager.distance(activePercentageGuess, level.target);
       const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
       const t = Math.min(dist / maxDist, 1);
@@ -373,10 +401,6 @@ export class LevelRenderer {
       };
       this.scatterPuzzle.updateGuess(pixelGuess);
     }
-  }
-
-  hasBackground(): boolean {
-    return this.backgroundSprite !== null || this.backgroundSprites.length > 0 || this.scatterPuzzle !== null;
   }
 
   drawLevel(activePercentageGuess: Point, level: Level): void {

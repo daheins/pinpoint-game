@@ -2,6 +2,7 @@
   "id": 4,
   "displayName": "Level 4",
   "target": { "x": 61.6, "y": 70.9 },
+  "fixedImage": "10x10gridTransparent.png",
   "multiImage": [
     {
       "image": "level4_1.png",
