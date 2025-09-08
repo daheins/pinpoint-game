@@ -1,4 +1,5 @@
 // Function to dynamically load all level files from public directory
+console.log('Game script loaded successfully!');
 async function loadLevels(): Promise<Level[]> {
   const levelFiles = [
     'level1.json',
@@ -79,11 +80,8 @@ levelRenderer = new LevelRenderer(app, backgroundContainer, TABLET_WIDTH, TABLET
 
 // Available levels - dynamically loaded from levels folder and sorted by ID
 const levels: Level[] = await loadLevels();
-console.log('DEBUG: Loaded levels:', levels.length, levels);
-console.log('DEBUG: BASE_URL:', import.meta.env.BASE_URL);
 const levelManager = new LevelManager(levels);
 let currentLevel: Level = levelManager.getCurrentLevel();
-console.log('DEBUG: Current level:', currentLevel);
 let mouse: Point = { x: 0, y: 0 };
 let guess: Point = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
 let isDragging = false;
