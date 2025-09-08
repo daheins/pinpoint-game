@@ -1,6 +1,8 @@
 // Function to dynamically load all level files from public directory
 console.log('Game script loaded successfully!');
+
 async function loadLevels(): Promise<Level[]> {
+  console.log('Starting to load levels...');
   const levelFiles = [
     'level1.json',
     'level2.json', 
@@ -15,11 +17,13 @@ async function loadLevels(): Promise<Level[]> {
   for (const filename of levelFiles) {
     try {
       const url = `${import.meta.env.BASE_URL}levels/${filename}`;
+      console.log(`Fetching level: ${url}`);
       const response = await fetch(url);
       
       if (response.ok) {
         const levelData = await response.json();
         levels.push(levelData);
+        console.log(`Successfully loaded level: ${filename}`);
       } else {
         console.warn(`Failed to load level: ${filename} - Status: ${response.status}`);
       }
@@ -27,6 +31,7 @@ async function loadLevels(): Promise<Level[]> {
       console.error(`Error loading level ${filename}:`, error);
     }
   }
+  console.log(`Total levels loaded: ${levels.length}`);
   return levels;
 }
 
@@ -79,9 +84,9 @@ gameContainer.addChild(uiContainer);
 levelRenderer = new LevelRenderer(app, backgroundContainer, TABLET_WIDTH, TABLET_HEIGHT);
 
 // Available levels - dynamically loaded from levels folder and sorted by ID
-const levels: Level[] = await loadLevels();
-const levelManager = new LevelManager(levels);
-let currentLevel: Level = levelManager.getCurrentLevel();
+let levels: Level[] = [];
+let levelManager: LevelManager;
+let currentLevel: Level;
 let mouse: Point = { x: 0, y: 0 };
 let guess: Point = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
 let isDragging = false;
@@ -197,7 +202,7 @@ function createCoordinateDisplay() {
     uiContainer.removeChild(coordinateDisplay);
   }
   
-  if (showDebugTools) {
+  if (showDebugTools && currentLevel) {
     const activePercentageGuess = {
       x: (guess.x / TABLET_WIDTH) * 100,
       y: (guess.y / TABLET_HEIGHT) * 100,
@@ -246,7 +251,7 @@ function createTargetCircle() {
     uiContainer.removeChild(targetCircle);
   }
   
-  if (showDebugTools) {
+  if (showDebugTools && currentLevel) {
     // Convert target percentage to pixel coordinates
     const targetX = (currentLevel.target.x / 100) * TABLET_WIDTH;
     const targetY = (currentLevel.target.y / 100) * TABLET_HEIGHT;
@@ -282,15 +287,37 @@ function resizeCanvas() {
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
-// Initialize level selector and display
-createLevelSelector();
-levelNameDisplay.textContent = currentLevel.displayName;
+// Initialize the game
+async function initializeGame() {
+  console.log('Initializing game...');
+  
+  // Load levels
+  levels = await loadLevels();
+  levelManager = new LevelManager(levels);
+  currentLevel = levelManager.getCurrentLevel();
+  
+  console.log('Game initialized successfully!');
+  
+  // Initialize level selector and display
+  createLevelSelector();
+  levelNameDisplay.textContent = currentLevel.displayName;
 
-// Load initial level
-await loadLevel(0);
+  // Load initial level
+  await loadLevel(0);
+}
+
+// Start the game
+initializeGame().catch(error => {
+  console.error('Failed to initialize game:', error);
+});
 
 // --- Game Loop ---
 function gameLoop() {
+  // Don't run game loop until game is initialized
+  if (!currentLevel || !levelManager) {
+    return;
+  }
+
   // Always use current guess position
   const activePercentageGuess = {
     x: (guess.x / TABLET_WIDTH) * 100,
@@ -310,7 +337,7 @@ function gameLoop() {
   createTargetCircle();
 
   // Check for success only when mouse is not pressed
-  if (!isMouseButtonPressed && successStartMs === null) {
+  if (!isMouseButtonPressed && successStartMs === null && currentLevel) {
     const target = {
       x: (currentLevel.target.x / 100) * TABLET_WIDTH,
       y: (currentLevel.target.y / 100) * TABLET_HEIGHT
