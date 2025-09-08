@@ -1,0 +1,26 @@
+{
+  "id": 4,
+  "displayName": "Level 4",
+  "target": { "x": 8.4, "y": 10.3 },
+  "fixedImage": "10x10gridTransparent.png",
+  "multiImage": [
+    {
+      "image": "level4_1.png",
+      "target": { "x": 25.3, "y": 42.7 }
+    },
+    {
+      "image": "level4_2.png", 
+      "target": { "x": 78.9, "y": 15.2 }
+    },
+    {
+      "image": "level4_3.png",
+      "target": { "x": 56.1, "y": 83.4 }
+    }
+  ],
+  "feedback": "hotCold",
+  "settings": {
+    "targetColor": "#00FF00",
+    "farColor": "#FF0000",
+    "radius": 7
+  }
+}
