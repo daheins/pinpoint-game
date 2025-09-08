@@ -6,7 +6,7 @@ import type { Point, Level } from './level';
 import { LevelManager, LevelRenderer } from './level';
 
 // Import game parameters
-import { TABLET_WIDTH, TABLET_HEIGHT, shouldDisplayGuessCoors } from './gameParams';
+import { TABLET_WIDTH, TABLET_HEIGHT, showDebugTools } from './gameParams';
 
 import { Application, Container, Graphics, Text } from "pixi.js";
 // import { createMinimalFilter } from './multiImageFilter';
@@ -63,6 +63,7 @@ let successMessageVisible = false;
 let crosshairGraphics: Graphics | null = null;
 let successText: Text | null = null;
 let coordinateDisplay: Text | null = null;
+let targetCircle: Graphics | null = null;
 
 // --- Level Management ---
 function createLevelSelector() {
@@ -168,7 +169,7 @@ function createCoordinateDisplay() {
     uiContainer.removeChild(coordinateDisplay);
   }
   
-  if (shouldDisplayGuessCoors) {
+  if (showDebugTools) {
     const activePercentageGuess = {
       x: (guess.x / TABLET_WIDTH) * 100,
       y: (guess.y / TABLET_HEIGHT) * 100,
@@ -209,6 +210,27 @@ function createCoordinateDisplay() {
     
     uiContainer.addChild(coordinateContainer);
     coordinateDisplay = coordinateContainer as any;
+  }
+}
+
+function createTargetCircle() {
+  if (targetCircle) {
+    uiContainer.removeChild(targetCircle);
+  }
+  
+  if (showDebugTools) {
+    // Convert target percentage to pixel coordinates
+    const targetX = (currentLevel.target.x / 100) * TABLET_WIDTH;
+    const targetY = (currentLevel.target.y / 100) * TABLET_HEIGHT;
+    const radius = currentLevel.settings.radius;
+    
+    const circle = new Graphics();
+    circle.circle(targetX, targetY, radius);
+    circle.stroke({ width: 2, color: 0x0080FF, alpha: 0.8 });
+    circle.fill({ color: 0x0080FF, alpha: 0.2 });
+    
+    uiContainer.addChild(circle);
+    targetCircle = circle;
   }
 }
 
@@ -255,6 +277,9 @@ function gameLoop() {
   
   // Update coordinate display
   createCoordinateDisplay();
+  
+  // Update target circle
+  createTargetCircle();
 
   // Check for success only when mouse is not pressed
   if (!isMouseButtonPressed && successStartMs === null) {

@@ -5,4 +5,4 @@ export const TABLET_WIDTH = 1440;
 export const TABLET_HEIGHT = 810;
 
 // Debug settings
-export const shouldDisplayGuessCoors = true;
+export const showDebugTools = false;
