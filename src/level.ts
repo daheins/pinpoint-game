@@ -1,6 +1,6 @@
 // Level-related types and logic for the pinpoint game
 
-import { Application, Sprite, Assets, Container, DisplacementFilter, Texture, Rectangle } from "pixi.js";
+import { Application, Sprite, Assets, Container, DisplacementFilter, Texture, Rectangle, Graphics } from "pixi.js";
 
 export interface Point {
   x: number;
@@ -18,7 +18,7 @@ export interface MultiImageElement {
   target: Point;
 }
 
-export interface Level {
+export class Level {
   id: number;
   displayName: string;
   target: Point;
@@ -28,6 +28,22 @@ export interface Level {
   jigsawImage?: string;
   feedback: "hotCold";
   settings: LevelSettings;
+
+  constructor(levelData: any) {
+    this.id = levelData.id;
+    this.displayName = levelData.displayName;
+    this.target = levelData.target;
+    this.image = levelData.image;
+    this.fixedImage = levelData.fixedImage;
+    this.multiImage = levelData.multiImage;
+    this.jigsawImage = levelData.jigsawImage;
+    this.feedback = levelData.feedback;
+    this.settings = levelData.settings;
+  }
+
+  shouldShowCrosshair(): boolean {
+    return !this.jigsawImage;
+  }
 }
 
 // Level management utilities
@@ -99,6 +115,7 @@ interface PuzzlePiece {
   trueY: number;
   offsetX: number;
   offsetY: number;
+  border?: Graphics; // Optional border for target piece
 }
 
 export class ScatterPuzzle {
@@ -110,6 +127,8 @@ export class ScatterPuzzle {
   private jigsawGridSize = 10; // 10x10 grid
   private currentGuess: { x: number; y: number } = { x: 0, y: 0 };
   private levelRadius: number;
+  private targetPiece: PuzzlePiece | null = null;
+  private targetPieceOffset: { x: number; y: number } = { x: 0, y: 0 };
 
   constructor(app: Application, image: Texture, target: { x: number; y: number }, parentContainer: Container, levelRadius: number) {
     this.app = app;
@@ -145,13 +164,34 @@ export class ScatterPuzzle {
         const offsetY = Math.sin(angle) * magnitude;
 
         this.container.addChild(sprite);
-        this.pieces.push({
+        const piece: PuzzlePiece = {
           sprite,
           trueX: col * pieceW,
           trueY: row * pieceH,
           offsetX,
           offsetY,
-        });
+        };
+        this.pieces.push(piece);
+
+        // Check if this piece contains the target
+        if (this.target.x >= col * pieceW && this.target.x < (col + 1) * pieceW &&
+            this.target.y >= row * pieceH && this.target.y < (row + 1) * pieceH) {
+          this.targetPiece = piece;
+          // Calculate offset from target to piece top-left corner (sprite position)
+          this.targetPieceOffset = {
+            x: this.target.x - (col * pieceW),
+            y: this.target.y - (row * pieceH)
+          };
+          
+          // Create a black border for the target piece
+          const border = new Graphics();
+          border.rect(0, 0, pieceW, pieceH);
+          border.stroke({ width: 4, color: 0x000000 });
+          
+          // Add border to the piece and container
+          piece.border = border;
+          this.container.addChild(border);
+        }
       }
     }
   }
@@ -168,6 +208,28 @@ export class ScatterPuzzle {
     const canvasHeight = this.app.renderer.height;
 
     for (const piece of this.pieces) {
+      // Handle target piece differently - it follows the cursor
+      if (piece === this.targetPiece) {
+        // Position the target piece so that the target point on the piece aligns with the cursor
+        // The offset represents where the target is relative to the piece's top-left corner
+        piece.sprite.x = this.currentGuess.x - this.targetPieceOffset.x;
+        piece.sprite.y = this.currentGuess.y - this.targetPieceOffset.y;
+        
+        // Move the border along with the piece
+        if (piece.border) {
+          piece.border.x = piece.sprite.x;
+          piece.border.y = piece.sprite.y;
+        }
+        
+        // Ensure target piece and its border are always on top
+        this.container.setChildIndex(piece.sprite, this.container.children.length - 1);
+        if (piece.border) {
+          this.container.setChildIndex(piece.border, this.container.children.length - 1);
+        }
+        continue;
+      }
+
+      // Regular scatter logic for non-target pieces
       let newX = piece.trueX + scatterFactor * piece.offsetX;
       let newY = piece.trueY + scatterFactor * piece.offsetY;
       
@@ -206,6 +268,7 @@ export class ScatterPuzzle {
     this.app.ticker.remove(this.update);
     this.container.destroy({ children: true });
     this.pieces = [];
+    this.targetPiece = null;
   }
 }
 

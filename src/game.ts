@@ -1,6 +1,6 @@
 // Import level types and utilities
-import type { Point, Level } from './level';
-import { LevelManager, LevelRenderer } from './level';
+import type { Point } from './level';
+import { Level, LevelManager, LevelRenderer } from './level';
 
 // Import game parameters
 import { TABLET_WIDTH, TABLET_HEIGHT } from './gameParams';
@@ -28,7 +28,7 @@ async function loadLevels(): Promise<Level[]> {
       
       if (response.ok) {
         const levelData = await response.json();
-        levels.push(levelData);
+        levels.push(new Level(levelData));
       } else {
         console.warn(`Failed to load level: ${filename} - Status: ${response.status}`);
       }
@@ -327,8 +327,14 @@ function gameLoop() {
   // Update level-specific rendering
   levelRenderer.drawLevel(activePercentageGuess, currentLevel);
 
-  // Update crosshair (use same logic as renderer)
-  createCrosshair();
+  // Update crosshair (only if level should show crosshair)
+  if (currentLevel.shouldShowCrosshair()) {
+    createCrosshair();
+  } else if (crosshairGraphics) {
+    // Remove crosshair if it exists but shouldn't be shown
+    uiContainer.removeChild(crosshairGraphics);
+    crosshairGraphics = null;
+  }
   
   // Update coordinate display
   createCoordinateDisplay();
