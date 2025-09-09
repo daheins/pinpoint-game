@@ -8,12 +8,6 @@ export interface Point {
   y: number;
 }
 
-export interface LevelSettings {
-  targetColor: string;
-  farColor: string;
-  radius: number;
-}
-
 export interface MultiImageElement {
   image: string;
   target: Point;
@@ -23,27 +17,27 @@ export class Level {
   id: number;
   displayName: string;
   target: Point;
+  targetRadius: number;
   image?: string;
   fixedImage?: string;
   multiImage?: MultiImageElement[];
   jigsawImage?: string;
+  jigsawSlope?: number;
   curveImage?: string;
   curveCursor?: string;
-  feedback: "hotCold";
-  settings: LevelSettings;
 
   constructor(levelData: any) {
     this.id = levelData.id;
     this.displayName = levelData.displayName;
     this.target = levelData.target;
+    this.targetRadius = levelData.targetRadius;
     this.image = levelData.image;
     this.fixedImage = levelData.fixedImage;
     this.multiImage = levelData.multiImage;
     this.jigsawImage = levelData.jigsawImage;
+    this.jigsawSlope = levelData.jigsawSlope;
     this.curveImage = levelData.curveImage;
     this.curveCursor = levelData.curveCursor;
-    this.feedback = levelData.feedback;
-    this.settings = levelData.settings;
   }
 
   shouldShowCrosshair(): boolean {
@@ -167,14 +161,16 @@ export class ScatterPuzzle {
   private jigsawGridSize = 10; // 10x10 grid
   private currentGuess: { x: number; y: number } = { x: 0, y: 0 };
   private levelRadius: number;
+  private jigsawSlope?: number;
   private targetPiece: PuzzlePiece | null = null;
   private targetPieceOffset: { x: number; y: number } = { x: 0, y: 0 };
 
-  constructor(app: Application, image: Texture, target: { x: number; y: number }, parentContainer: Container, levelRadius: number) {
+  constructor(app: Application, image: Texture, target: { x: number; y: number }, parentContainer: Container, levelRadius: number, jigsawSlope?: number) {
     this.app = app;
     this.image = image;
     this.target = target;
     this.levelRadius = levelRadius;
+    this.jigsawSlope = jigsawSlope;
     this.container = new Container();
     parentContainer.addChild(this.container);
 
@@ -237,9 +233,23 @@ export class ScatterPuzzle {
   }
 
   private update = () => {
-    const dx = this.currentGuess.x - this.target.x;
-    const dy = this.currentGuess.y - this.target.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    let dist: number;
+    
+    if (this.jigsawSlope !== undefined) {
+      // Calculate distance from guess to the line defined by slope going through target
+      // Line equation: y - target.y = slope * (x - target.x)
+      // Standard form: slope * x - y + (target.y - slope * target.x) = 0
+      // Distance formula: |slope * guess.x - guess.y + (target.y - slope * target.x)| / sqrt(slope² + 1)
+      const m = -this.jigsawSlope;
+      const numerator = m * this.currentGuess.x - this.currentGuess.y + (this.target.y - m * this.target.x);
+      const denominator = Math.sqrt(m * m + 1);
+      dist = numerator / denominator;
+    } else {
+      // Original distance calculation from guess to target point
+      const dx = this.currentGuess.x - this.target.x;
+      const dy = this.currentGuess.y - this.target.y;
+      dist = Math.sqrt(dx * dx + dy * dy);
+    }
 
     // scatter factor increases linearly with distance (no maximum limit)
     const scatterFactor = dist / 400; // adjust divisor for sensitivity
@@ -445,7 +455,7 @@ export class LevelRenderer {
           x: (level.target.x / 100) * this.canvasWidth,
           y: (level.target.y / 100) * this.canvasHeight
         };
-        this.scatterPuzzle = new ScatterPuzzle(this.app, texture, target, this.backgroundContainer, level.settings.radius);
+        this.scatterPuzzle = new ScatterPuzzle(this.app, texture, target, this.backgroundContainer, level.targetRadius, level.jigsawSlope);
       } catch (error) {
         console.error(`Failed to load jigsaw image: ${import.meta.env.BASE_URL}images/${level.jigsawImage}`, error);
         this.scatterPuzzle = null;

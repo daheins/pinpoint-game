@@ -16,7 +16,8 @@ async function loadLevels(): Promise<Level[]> {
     'level3.json',
     'level4.json',
     'level5.json',
-    'level6.json'
+    'level6.json',
+    'level7.json'
   ];
   
   const levels: Level[] = [];
@@ -312,7 +313,7 @@ function createTargetCircle() {
     // Convert target percentage to pixel coordinates
     const targetX = (currentLevel.target.x / 100) * TABLET_WIDTH;
     const targetY = (currentLevel.target.y / 100) * TABLET_HEIGHT;
-    const radius = currentLevel.settings.radius;
+    const radius = currentLevel.targetRadius;
     
     const circle = new Graphics();
     circle.circle(targetX, targetY, radius);
@@ -434,7 +435,7 @@ function gameLoop() {
       x: (currentLevel.target.x / 100) * TABLET_WIDTH,
       y: (currentLevel.target.y / 100) * TABLET_HEIGHT
     };
-    const wasFound = levelManager.isGuessSuccessful(guess, target, currentLevel.settings.radius);
+    const wasFound = levelManager.isGuessSuccessful(guess, target, currentLevel.targetRadius);
     if (wasFound) {
       successStartMs = performance.now();
     }

@@ -2,6 +2,7 @@
   "id": 4,
   "displayName": "Level 4",
   "target": { "x": 7.2, "y": 10.25 },
+  "targetRadius": 7,
   "fixedImage": "10x10gridTransparent.png",
   "multiImage": [
     {
@@ -16,11 +17,5 @@
       "image": "level4_3.png",
       "target": { "x": 56.1, "y": 83.4 }
     }
-  ],
-  "feedback": "hotCold",
-  "settings": {
-    "targetColor": "#00FF00",
-    "farColor": "#FF0000",
-    "radius": 7
-  }
+  ]
 }

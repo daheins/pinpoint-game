@@ -1,0 +1,8 @@
+{
+  "id": 7,
+  "displayName": "Level 7",
+  "target": { "x": 85, "y": 87 },
+  "targetRadius": 10,
+  "jigsawImage": "hkchains.jpg",
+  "jigsawSlope": 1.3
+}
