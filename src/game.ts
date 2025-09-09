@@ -6,7 +6,7 @@ import { Level, LevelManager, LevelRenderer } from './level';
 import { TABLET_WIDTH, TABLET_HEIGHT } from './gameParams';
 import { showDebugTools } from './gameParams_debug';
 
-import { Application, Container, Graphics, Text } from "pixi.js";
+import { Application, Container, Graphics, Text, Sprite } from "pixi.js";
 
 // Function to dynamically load all level files from public directory
 async function loadLevels(): Promise<Level[]> {
@@ -78,6 +78,7 @@ let isMouseButtonPressed = false;
 let successStartMs: number | null = null;
 let successMessageVisible = false;
 let crosshairGraphics: Graphics | null = null;
+let curveCursorSprite: Sprite | null = null;
 let successText: Text | null = null;
 let coordinateDisplay: Text | null = null;
 let curveDistanceDisplay: Text | null = null;
@@ -105,11 +106,30 @@ async function loadLevel(levelIndex: number) {
   currentLevel = levelManager.loadLevel(levelIndex);
   levelNameDisplay.textContent = currentLevel.displayName;
   
+  // Clear previous curve cursor sprite from UI container
+  if (curveCursorSprite) {
+    uiContainer.removeChild(curveCursorSprite);
+    curveCursorSprite = null;
+  }
+  
   // Load level using the renderer
   await levelRenderer.loadLevel(currentLevel);
   
-  // Reset game state
-  guess = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
+  // Move curve cursor sprite from background container to UI container if it exists
+  const newCurveCursorSprite = levelRenderer.getCurveCursorSprite();
+  if (newCurveCursorSprite) {
+    // Remove from background container and add to UI container
+    backgroundContainer.removeChild(newCurveCursorSprite);
+    uiContainer.addChild(newCurveCursorSprite);
+    curveCursorSprite = newCurveCursorSprite;
+  }
+  
+  // Reset game state - set initial guess to middle for curve cursor levels
+  if (currentLevel.curveCursor) {
+    guess = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
+  } else {
+    guess = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
+  }
   successStartMs = null;
   successMessageVisible = false;
   
@@ -387,6 +407,16 @@ function gameLoop() {
     // Remove crosshair if it exists but shouldn't be shown
     uiContainer.removeChild(crosshairGraphics);
     crosshairGraphics = null;
+  }
+  
+  // Update curve cursor (only if level has curve cursor)
+  if (currentLevel.curveCursor && curveCursorSprite) {
+    // Curve cursor position is updated in levelRenderer.drawLevel()
+    // No additional action needed here
+  } else if (curveCursorSprite) {
+    // Remove curve cursor if it exists but shouldn't be shown
+    uiContainer.removeChild(curveCursorSprite);
+    curveCursorSprite = null;
   }
   
   // Update curve distance display

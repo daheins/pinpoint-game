@@ -28,6 +28,7 @@ export class Level {
   multiImage?: MultiImageElement[];
   jigsawImage?: string;
   curveImage?: string;
+  curveCursor?: string;
   feedback: "hotCold";
   settings: LevelSettings;
 
@@ -40,12 +41,13 @@ export class Level {
     this.multiImage = levelData.multiImage;
     this.jigsawImage = levelData.jigsawImage;
     this.curveImage = levelData.curveImage;
+    this.curveCursor = levelData.curveCursor;
     this.feedback = levelData.feedback;
     this.settings = levelData.settings;
   }
 
   shouldShowCrosshair(): boolean {
-    return !this.jigsawImage;
+    return !this.jigsawImage && !this.curveCursor;
   }
 }
 
@@ -322,6 +324,7 @@ export class LevelRenderer {
   private scatterPuzzle: ScatterPuzzle | null = null;
   private curveImage: HTMLImageElement | null = null;
   private curveDisplaySprite: Sprite | null = null;
+  private curveCursorSprite: Sprite | null = null;
   private canvasWidth: number;
   private canvasHeight: number;
 
@@ -364,6 +367,12 @@ export class LevelRenderer {
     if (this.curveDisplaySprite) {
       this.backgroundContainer.removeChild(this.curveDisplaySprite);
       this.curveDisplaySprite = null;
+    }
+    
+    // Clear previous curve cursor sprite
+    if (this.curveCursorSprite) {
+      this.backgroundContainer.removeChild(this.curveCursorSprite);
+      this.curveCursorSprite = null;
     }
     
     // Clear any existing filters on the container
@@ -472,6 +481,28 @@ export class LevelRenderer {
       }
     }
     
+    // Load curve cursor if level has one
+    if (level.curveCursor) {
+      try {
+        const texture = await Assets.load(`${import.meta.env.BASE_URL}images/${level.curveCursor}`);
+        this.curveCursorSprite = new Sprite(texture);
+        
+        // Set initial position to middle of canvas
+        this.curveCursorSprite.x = this.canvasWidth / 2;
+        this.curveCursorSprite.y = this.canvasHeight / 2;
+        
+        // Center the sprite anchor
+        this.curveCursorSprite.anchor.set(0.5, 0.5);
+        
+        // Add curve cursor sprite to UI container (will be added to uiContainer in game.ts)
+        // For now, add to background container, but we'll move it to UI container later
+        this.backgroundContainer.addChild(this.curveCursorSprite);
+      } catch (error) {
+        console.error(`Failed to load curve cursor: ${import.meta.env.BASE_URL}images/${level.curveCursor}`, error);
+        this.curveCursorSprite = null;
+      }
+    }
+    
     // Clean up unused properties
     if (!level.image) {
       this.displacementFilter = null;
@@ -552,6 +583,19 @@ export class LevelRenderer {
     return null;
   }
 
+  // Update curve cursor position
+  updateCurveCursor(activePixelGuess: Point): void {
+    if (this.curveCursorSprite) {
+      this.curveCursorSprite.x = activePixelGuess.x;
+      this.curveCursorSprite.y = activePixelGuess.y;
+    }
+  }
+
+  // Get curve cursor sprite for UI container management
+  getCurveCursorSprite(): Sprite | null {
+    return this.curveCursorSprite;
+  }
+
 
   drawLevel(activePercentageGuess: Point, level: Level): void {
     // Update warp filter for single image levels
@@ -565,5 +609,14 @@ export class LevelRenderer {
     
     // Update background color for levels without images
     this.updateBackgroundColor(activePercentageGuess, level);
+    
+    // Update curve cursor position for curve cursor levels
+    if (level.curveCursor) {
+      const activePixelGuess = {
+        x: (activePercentageGuess.x / 100) * this.canvasWidth,
+        y: (activePercentageGuess.y / 100) * this.canvasHeight
+      };
+      this.updateCurveCursor(activePixelGuess);
+    }
   }
 }
