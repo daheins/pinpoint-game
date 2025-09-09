@@ -1,7 +1,7 @@
 {
   "id": 4,
   "displayName": "Level 4",
-  "target": { "x": 8.4, "y": 10.3 },
+  "target": { "x": 7.2, "y": 10.25 },
   "fixedImage": "10x10gridTransparent.png",
   "multiImage": [
     {
