@@ -3,7 +3,8 @@ import type { Point, Level } from './level';
 import { LevelManager, LevelRenderer } from './level';
 
 // Import game parameters
-import { TABLET_WIDTH, TABLET_HEIGHT, showDebugTools } from './gameParams';
+import { TABLET_WIDTH, TABLET_HEIGHT } from './gameParams';
+import { showDebugTools } from './gameParams_debug';
 
 import { Application, Container, Graphics, Text } from "pixi.js";
 

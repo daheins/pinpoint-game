@@ -24,3 +24,6 @@ pnpm-debug.log*
 
 # Coverage
 coverage/
+
+# Local debug configuration
+src/gameParams_debug.ts
