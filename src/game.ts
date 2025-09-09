@@ -1,8 +1,12 @@
 // Function to dynamically load all level files from public directory
 console.log('Game script loaded successfully!');
 
+console.log('About to define loadLevels function...');
+
 async function loadLevels(): Promise<Level[]> {
   console.log('Starting to load levels...');
+  console.log('BASE_URL:', import.meta.env.BASE_URL);
+  
   const levelFiles = [
     'level1.json',
     'level2.json', 
@@ -35,21 +39,34 @@ async function loadLevels(): Promise<Level[]> {
   return levels;
 }
 
+console.log('About to import level types...');
+
 // Import level types and utilities
 import type { Point, Level } from './level';
 import { LevelManager, LevelRenderer } from './level';
 
+console.log('Level imports successful!');
+
+console.log('About to import game parameters...');
+
 // Import game parameters
 import { TABLET_WIDTH, TABLET_HEIGHT, showDebugTools } from './gameParams';
 
+console.log('Game parameters imported!');
+
+console.log('About to import PIXI.js...');
+
 import { Application, Container, Graphics, Text } from "pixi.js";
+
+console.log('PIXI.js imported successfully!');
 // import { createMinimalFilter } from './multiImageFilter';
 
 // --- Level Renderer ---
-let levelRenderer: LevelRenderer;
+// (declared later in the file)
 
 // --- Setup ---
 const canvas = document.getElementById("tablet-canvas") as HTMLCanvasElement;
+console.log('Canvas element found:', canvas);
 
 const container = document.getElementById("game-container") as HTMLElement;
 const sizeWarning = document.getElementById("size-warning") as HTMLElement;
@@ -58,30 +75,23 @@ const levelGrid = document.getElementById("level-grid") as HTMLElement;
 container.style.width = `${TABLET_WIDTH}px`;
 container.style.height = `${TABLET_HEIGHT}px`;
 
+console.log('About to create PIXI Application...');
+
 // --- PIXI.js Setup ---
 const app = new Application();
-await app.init({
-  canvas: canvas,
-  width: TABLET_WIDTH,
-  height: TABLET_HEIGHT,
-  backgroundColor: 0x000000,
-  antialias: true
-});
+console.log('PIXI Application created, about to initialize...');
 
 // Create main container
 const gameContainer = new Container();
-app.stage.addChild(gameContainer);
 
 // Create background sprite container
 const backgroundContainer = new Container();
-gameContainer.addChild(backgroundContainer);
 
 // Create UI container for crosshair and effects
 const uiContainer = new Container();
-gameContainer.addChild(uiContainer);
 
 // Initialize level renderer
-levelRenderer = new LevelRenderer(app, backgroundContainer, TABLET_WIDTH, TABLET_HEIGHT);
+let levelRenderer: LevelRenderer;
 
 // Available levels - dynamically loaded from levels folder and sorted by ID
 let levels: Level[] = [];
@@ -291,6 +301,40 @@ resizeCanvas();
 async function initializeGame() {
   console.log('Initializing game...');
   
+  // Initialize PIXI.js
+  console.log('Initializing PIXI.js...');
+  console.log('Canvas element:', canvas);
+  console.log('Canvas dimensions:', TABLET_WIDTH, TABLET_HEIGHT);
+  
+  try {
+    await app.init({
+      canvas: canvas,
+      width: TABLET_WIDTH,
+      height: TABLET_HEIGHT,
+      backgroundColor: 0x000000,
+      antialias: true
+    });
+    console.log('PIXI.js initialized!');
+    console.log('app.stage:', app.stage);
+  } catch (error) {
+    console.error('PIXI.js initialization failed:', error);
+    throw error;
+  }
+  
+  // Set up PIXI containers
+  if (app.stage) {
+    app.stage.addChild(gameContainer);
+    gameContainer.addChild(backgroundContainer);
+    gameContainer.addChild(uiContainer);
+    console.log('PIXI containers set up successfully!');
+  } else {
+    throw new Error('app.stage is undefined after initialization');
+  }
+  
+  // Initialize level renderer
+  levelRenderer = new LevelRenderer(app, backgroundContainer, TABLET_WIDTH, TABLET_HEIGHT);
+  console.log('Level renderer initialized!');
+  
   // Load levels
   levels = await loadLevels();
   levelManager = new LevelManager(levels);
@@ -304,11 +348,17 @@ async function initializeGame() {
 
   // Load initial level
   await loadLevel(0);
+  
+  // Start PIXI.js ticker after everything is initialized
+  console.log('Starting game loop...');
+  app.ticker.add(gameLoop);
+  console.log('Game loop started!');
 }
 
 // Start the game
 initializeGame().catch(error => {
   console.error('Failed to initialize game:', error);
+  console.error('Error details:', error.message, error.stack);
 });
 
 // --- Game Loop ---
@@ -395,8 +445,7 @@ function gameLoop() {
   }
 }
 
-// Start PIXI.js ticker
-app.ticker.add(gameLoop);
+// PIXI.js ticker will be started after initialization
 
 // --- Input (map to virtual space) ---
 canvas.addEventListener("mousemove", (e: MouseEvent) => {
