@@ -512,15 +512,24 @@ canvas.addEventListener("mousedown", () => {
   successMessageVisible = false;
   guess.x = mouse.x;
   guess.y = mouse.y;
+  
+  // Hide cursor when dragging
+  canvas.style.cursor = 'none';
 });
 
 canvas.addEventListener("mouseup", () => {
   isDragging = false;
   isMouseButtonPressed = false;
+  
+  // Show cursor again when not dragging
+  canvas.style.cursor = 'default';
 });
 
 canvas.addEventListener("mouseleave", () => {
   isDragging = false;
+  
+  // Show cursor again when mouse leaves canvas
+  canvas.style.cursor = 'default';
 });
 
 canvas.addEventListener("mouseenter", () => {
@@ -529,6 +538,12 @@ canvas.addEventListener("mouseenter", () => {
     isDragging = true;
     guess.x = mouse.x;
     guess.y = mouse.y;
+    
+    // Hide cursor if resuming drag
+    canvas.style.cursor = 'none';
+  } else {
+    // Show cursor if not dragging
+    canvas.style.cursor = 'default';
   }
 });
 
@@ -536,4 +551,7 @@ canvas.addEventListener("mouseenter", () => {
 document.addEventListener("mouseup", () => {
   isMouseButtonPressed = false;
   isDragging = false;
+  
+  // Show cursor again when mouse is released anywhere
+  canvas.style.cursor = 'default';
 });
