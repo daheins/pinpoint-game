@@ -2,7 +2,7 @@
   "id": 6,
   "displayName": "Level 6",
   "target": { "x": 62.5, "y": 16.75 },
-  "image": "10x10gridTransparent.png",
+  "curveImage": "curve1.png",
   "settings": {
     "targetColor": "#00FF00",
     "farColor": "#FF0000",

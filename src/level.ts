@@ -1,6 +1,7 @@
 // Level-related types and logic for the pinpoint game
 
 import { Application, Sprite, Assets, Container, DisplacementFilter, Texture, Rectangle, Graphics } from "pixi.js";
+import { showCurve } from './gameParams_debug';
 
 export interface Point {
   x: number;
@@ -26,6 +27,7 @@ export class Level {
   fixedImage?: string;
   multiImage?: MultiImageElement[];
   jigsawImage?: string;
+  curveImage?: string;
   feedback: "hotCold";
   settings: LevelSettings;
 
@@ -37,6 +39,7 @@ export class Level {
     this.fixedImage = levelData.fixedImage;
     this.multiImage = levelData.multiImage;
     this.jigsawImage = levelData.jigsawImage;
+    this.curveImage = levelData.curveImage;
     this.feedback = levelData.feedback;
     this.settings = levelData.settings;
   }
@@ -105,6 +108,41 @@ export class LevelManager {
       x: (pixels.x / canvasWidth) * 100,
       y: (pixels.y / canvasHeight) * 100
     };
+  }
+
+  // Calculate distance from a point to a curve defined by an image
+  // Returns distance value from 0-100 based on pixel color (black=0, white=100)
+  static getCurveDistance(guess: Point, curveImage: HTMLImageElement): number {
+    // Create a temporary canvas to sample the curve image
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return 50; // Default distance if canvas context fails
+
+    // Set canvas size to match the curve image
+    canvas.width = curveImage.width;
+    canvas.height = curveImage.height;
+
+    // Draw the curve image to the canvas
+    ctx.drawImage(curveImage, 0, 0);
+
+    // Convert guess coordinates from percentage to image pixel coordinates
+    const imageX = (guess.x / 100) * canvas.width;
+    const imageY = (guess.y / 100) * canvas.height;
+
+    // Clamp coordinates to image bounds
+    const clampedX = Math.max(0, Math.min(canvas.width - 1, Math.floor(imageX)));
+    const clampedY = Math.max(0, Math.min(canvas.height - 1, Math.floor(imageY)));
+
+    // Sample the pixel at the guess coordinates
+    const imageData = ctx.getImageData(clampedX, clampedY, 1, 1);
+    const [r, g, b] = imageData.data;
+
+    // Convert RGB to distance (assuming grayscale: black=0, white=100)
+    // Use average of RGB values for grayscale
+    const grayscale = (r + g + b) / 3;
+    const distance = (grayscale / 255) * 100;
+
+    return distance;
   }
 }
 
@@ -282,6 +320,8 @@ export class LevelRenderer {
   private displacementFilter: DisplacementFilter | null = null;
   private displacementSprite: Sprite | null = null;
   private scatterPuzzle: ScatterPuzzle | null = null;
+  private curveImage: HTMLImageElement | null = null;
+  private curveDisplaySprite: Sprite | null = null;
   private canvasWidth: number;
   private canvasHeight: number;
 
@@ -315,6 +355,15 @@ export class LevelRenderer {
     if (this.scatterPuzzle) {
       this.scatterPuzzle.destroy();
       this.scatterPuzzle = null;
+    }
+    
+    // Clear previous curve image
+    this.curveImage = null;
+    
+    // Clear previous curve display sprite
+    if (this.curveDisplaySprite) {
+      this.backgroundContainer.removeChild(this.curveDisplaySprite);
+      this.curveDisplaySprite = null;
     }
     
     // Clear any existing filters on the container
@@ -394,6 +443,35 @@ export class LevelRenderer {
       }
     }
     
+    // Load curve image for curve-based levels
+    if (level.curveImage) {
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // Enable CORS for pixel sampling
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = `${import.meta.env.BASE_URL}images/${level.curveImage}`;
+        });
+        this.curveImage = img;
+        
+        // Create display sprite if showCurve debug option is enabled
+        if (showCurve) {
+          const texture = await Assets.load(`${import.meta.env.BASE_URL}images/${level.curveImage}`);
+          this.curveDisplaySprite = new Sprite(texture);
+          this.curveDisplaySprite.width = this.canvasWidth;
+          this.curveDisplaySprite.height = this.canvasHeight;
+          
+          // Add curve display sprite on top of everything (like fixed image)
+          this.backgroundContainer.addChild(this.curveDisplaySprite);
+        }
+      } catch (error) {
+        console.error(`Failed to load curve image: ${import.meta.env.BASE_URL}images/${level.curveImage}`, error);
+        this.curveImage = null;
+        this.curveDisplaySprite = null;
+      }
+    }
+    
     // Clean up unused properties
     if (!level.image) {
       this.displacementFilter = null;
@@ -465,6 +543,15 @@ export class LevelRenderer {
       this.scatterPuzzle.updateGuess(pixelGuess);
     }
   }
+
+  // Get curve distance for curve-based levels
+  getCurveDistance(activePercentageGuess: Point): number | null {
+    if (this.curveImage) {
+      return LevelManager.getCurveDistance(activePercentageGuess, this.curveImage);
+    }
+    return null;
+  }
+
 
   drawLevel(activePercentageGuess: Point, level: Level): void {
     // Update warp filter for single image levels
