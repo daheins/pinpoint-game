@@ -4,7 +4,9 @@ import { Level, LevelManager, LevelRenderer } from './level';
 
 // Import game parameters
 import { TABLET_WIDTH, TABLET_HEIGHT } from './gameParams';
-import { showDebugTools } from './gameParams_debug';
+
+// Import debug utilities
+import { createCurveDistanceDisplay, createCoordinateDisplay, createTargetCircle } from './game_debug';
 
 import { Application, Container, Graphics, Text, Sprite } from "pixi.js";
 
@@ -39,9 +41,6 @@ async function loadLevels(): Promise<Level[]> {
   }
 }
 
-// --- Level Renderer ---
-// (declared later in the file)
-
 // --- Setup ---
 const canvas = document.getElementById("tablet-canvas") as HTMLCanvasElement;
 
@@ -58,8 +57,8 @@ const app = new Application();
 // Create main container
 const gameContainer = new Container();
 
-// Create background sprite container
-const backgroundContainer = new Container();
+// Create image container
+const imageContainer = new Container();
 
 // Create UI container for crosshair and effects
 const uiContainer = new Container();
@@ -80,9 +79,6 @@ let successMessageVisible = false;
 let crosshairGraphics: Graphics | null = null;
 let curveCursorSprite: Sprite | null = null;
 let successText: Text | null = null;
-let coordinateDisplay: Text | null = null;
-let curveDistanceDisplay: Text | null = null;
-let targetCircle: Graphics | null = null;
 
 // --- Level Management ---
 function createLevelSelector() {
@@ -118,8 +114,8 @@ async function loadLevel(levelIndex: number) {
   // Move curve cursor sprite from background container to UI container if it exists
   const newCurveCursorSprite = levelRenderer.getCurveCursorSprite();
   if (newCurveCursorSprite) {
-    // Remove from background container and add to UI container
-    backgroundContainer.removeChild(newCurveCursorSprite);
+    // Remove from image container and add to UI container
+    imageContainer.removeChild(newCurveCursorSprite);
     uiContainer.addChild(newCurveCursorSprite);
     curveCursorSprite = newCurveCursorSprite;
   }
@@ -202,128 +198,6 @@ function createSuccessText() {
   successText = textContainer as any;
 }
 
-function createCurveDistanceDisplay() {
-  if (curveDistanceDisplay) {
-    uiContainer.removeChild(curveDistanceDisplay);
-  }
-  
-  if (showDebugTools && currentLevel && currentLevel.curveImage) {
-    const activePercentageGuess = {
-      x: (guess.x / TABLET_WIDTH) * 100,
-      y: (guess.y / TABLET_HEIGHT) * 100,
-    };
-    
-    const curveDistance = levelRenderer.getCurveDistance(activePercentageGuess);
-    const distanceText = curveDistance !== null ? curveDistance.toFixed(1) : 'N/A';
-    
-    const text = new Text({
-      text: `Curve Distance: ${distanceText}`,
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 16,
-        fill: 0xFFFFFF,
-        align: 'right'
-      }
-    });
-    
-    // Create background rectangle
-    const backgroundGraphics = new Graphics();
-    const padding = 8;
-    const bgWidth = text.width + (padding * 2);
-    const bgHeight = text.height + (padding * 2);
-    
-    backgroundGraphics.rect(0, 0, bgWidth, bgHeight);
-    backgroundGraphics.fill({ color: 0x000000, alpha: 0.7 });
-    backgroundGraphics.stroke({ width: 1, color: 0xFFFFFF, alpha: 0.5 });
-    
-    // Create container for background and text
-    const curveDistanceContainer = new Container();
-    curveDistanceContainer.addChild(backgroundGraphics);
-    curveDistanceContainer.addChild(text);
-    
-    // Position text within the container
-    text.x = padding;
-    text.y = padding;
-    
-    // Position container in bottom right corner, above the coordinate display
-    curveDistanceContainer.x = TABLET_WIDTH - bgWidth - 10;
-    curveDistanceContainer.y = TABLET_HEIGHT - (bgHeight * 2) - 20;
-    
-    uiContainer.addChild(curveDistanceContainer);
-    curveDistanceDisplay = curveDistanceContainer as any;
-  }
-}
-
-function createCoordinateDisplay() {
-  if (coordinateDisplay) {
-    uiContainer.removeChild(coordinateDisplay);
-  }
-  
-  if (showDebugTools && currentLevel) {
-    const activePercentageGuess = {
-      x: (guess.x / TABLET_WIDTH) * 100,
-      y: (guess.y / TABLET_HEIGHT) * 100,
-    };
-    
-    const text = new Text({
-      text: `(x: ${activePercentageGuess.x.toFixed(1)}, y: ${activePercentageGuess.y.toFixed(1)})`,
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 16,
-        fill: 0xFFFFFF,
-        align: 'right'
-      }
-    });
-    
-    // Create background rectangle
-    const backgroundGraphics = new Graphics();
-    const padding = 8;
-    const bgWidth = text.width + (padding * 2);
-    const bgHeight = text.height + (padding * 2);
-    
-    backgroundGraphics.rect(0, 0, bgWidth, bgHeight);
-    backgroundGraphics.fill({ color: 0x000000, alpha: 0.7 });
-    backgroundGraphics.stroke({ width: 1, color: 0xFFFFFF, alpha: 0.5 });
-    
-    // Create container for background and text
-    const coordinateContainer = new Container();
-    coordinateContainer.addChild(backgroundGraphics);
-    coordinateContainer.addChild(text);
-    
-    // Position text within the container
-    text.x = padding;
-    text.y = padding;
-    
-    // Position container in bottom right corner with some padding
-    coordinateContainer.x = TABLET_WIDTH - bgWidth - 10;
-    coordinateContainer.y = TABLET_HEIGHT - bgHeight - 10;
-    
-    uiContainer.addChild(coordinateContainer);
-    coordinateDisplay = coordinateContainer as any;
-  }
-}
-
-function createTargetCircle() {
-  if (targetCircle) {
-    uiContainer.removeChild(targetCircle);
-  }
-  
-  if (showDebugTools && currentLevel) {
-    // Convert target percentage to pixel coordinates
-    const targetX = (currentLevel.target.x / 100) * TABLET_WIDTH;
-    const targetY = (currentLevel.target.y / 100) * TABLET_HEIGHT;
-    const radius = currentLevel.targetRadius;
-    
-    const circle = new Graphics();
-    circle.circle(targetX, targetY, radius);
-    circle.stroke({ width: 2, color: 0x0080FF, alpha: 0.8 });
-    circle.fill({ color: 0x0080FF, alpha: 0.2 });
-    
-    uiContainer.addChild(circle);
-    targetCircle = circle;
-  }
-}
-
 // --- Resize Handling ---
 function resizeCanvas() {
   // Calculate total game container height: level-name + tablet-canvas
@@ -357,11 +231,11 @@ async function initializeGame() {
   
   // Set up PIXI containers
   app.stage.addChild(gameContainer);
-  gameContainer.addChild(backgroundContainer);
+  gameContainer.addChild(imageContainer);
   gameContainer.addChild(uiContainer);
   
   // Initialize level renderer
-  levelRenderer = new LevelRenderer(app, backgroundContainer, TABLET_WIDTH, TABLET_HEIGHT);
+  levelRenderer = new LevelRenderer(app, imageContainer, TABLET_WIDTH, TABLET_HEIGHT);
   
   // Load levels
   levels = await loadLevels();
@@ -419,14 +293,10 @@ function gameLoop() {
     curveCursorSprite = null;
   }
   
-  // Update curve distance display
-  createCurveDistanceDisplay();
-  
-  // Update coordinate display
-  createCoordinateDisplay();
-  
-  // Update target circle
-  createTargetCircle();
+  // Update debug displays
+  createCurveDistanceDisplay(uiContainer, currentLevel, guess, levelRenderer);
+  createCoordinateDisplay(uiContainer, currentLevel, guess);
+  createTargetCircle(uiContainer, currentLevel);
 
   // Check for success only when mouse is not pressed
   if (!isMouseButtonPressed && successStartMs === null && currentLevel) {
@@ -486,8 +356,6 @@ function gameLoop() {
     successText = null;
   }
 }
-
-// PIXI.js ticker will be started after initialization
 
 // --- Input (map to virtual space) ---
 canvas.addEventListener("mousemove", (e: MouseEvent) => {
