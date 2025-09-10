@@ -8,36 +8,35 @@ import { showDebugTools } from './gameParams_debug';
 
 import { Application, Container, Graphics, Text, Sprite } from "pixi.js";
 
-// Function to dynamically load all level files from public directory
+// Function to load all levels from consolidated levels file
 async function loadLevels(): Promise<Level[]> {
-  const levelFiles = [
-    'level1.json',
-    'level2.json', 
-    'level3.json',
-    'level4.json',
-    'level5.json',
-    'level6.json',
-    'level7.json'
-  ];
-  
-  const levels: Level[] = [];
-  
-  for (const filename of levelFiles) {
-    try {
-      const url = `${import.meta.env.BASE_URL}levels/${filename}`;
-      const response = await fetch(url);
+  try {
+    const url = `${import.meta.env.BASE_URL}levels.json`;
+    const response = await fetch(url);
+    
+    if (response.ok) {
+      const levelsData = await response.json();
+      const levels: Level[] = [];
       
-      if (response.ok) {
-        const levelData = await response.json();
+      // Convert the object to an array of levels, sorted by key
+      const sortedKeys = Object.keys(levelsData).sort((a, b) => parseInt(a) - parseInt(b));
+      
+      for (const key of sortedKeys) {
+        const levelData = levelsData[key];
+        // Add the id from the key
+        levelData.id = parseInt(key);
         levels.push(new Level(levelData));
-      } else {
-        console.warn(`Failed to load level: ${filename} - Status: ${response.status}`);
       }
-    } catch (error) {
-      console.error(`Error loading level ${filename}:`, error);
+      
+      return levels;
+    } else {
+      console.error(`Failed to load levels: ${response.status}`);
+      return [];
     }
+  } catch (error) {
+    console.error('Error loading levels:', error);
+    return [];
   }
-  return levels;
 }
 
 // --- Level Renderer ---

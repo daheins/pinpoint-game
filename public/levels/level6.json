@@ -1,8 +1,0 @@
-{
-  "id": 6,
-  "displayName": "Level 6",
-  "target": { "x": 62.5, "y": 16.75 },
-  "targetRadius": 20,
-  "curveImage": "curve1.png",
-  "curveCursor": "path17.png"
-}
