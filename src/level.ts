@@ -24,19 +24,15 @@ export class Level {
   target: Point;
   targetRadius: number;
   image?: string;
+  imageFilterDist?: string;
+  imageFilterX?: string;
+  imageFilterY?: string;
   fixedImage?: string;
   multiImage?: MultiImageElement[];
   jigsawImage?: string;
   jigsawSlope?: number;
   curveImage?: string;
   curveCursor?: string;
-  spiralEffect?: {
-    centerX?: number; // 0-1, relative to image
-    centerY?: number; // 0-1, relative to image
-    strength?: number; // 0-1, how strong the spiral effect is
-    rotation?: number; // rotation speed/amount
-    spiralTightness?: number; // how tight the spiral is
-  };
 
   constructor(levelData: any) {
     this.id = levelData.id;
@@ -50,7 +46,9 @@ export class Level {
     this.jigsawSlope = levelData.jigsawSlope;
     this.curveImage = levelData.curveImage;
     this.curveCursor = levelData.curveCursor;
-    this.spiralEffect = levelData.spiralEffect;
+    this.imageFilterDist = levelData.imageFilterDist;
+    this.imageFilterX = levelData.imageFilterX;
+    this.imageFilterY = levelData.imageFilterY;
   }
 
   shouldShowCrosshair(): boolean {
@@ -165,7 +163,7 @@ export class LevelRenderer {
   private backgroundSprites: Sprite[] = [];
   private displacementFilter: DisplacementFilter | null = null;
   private displacementSprite: Sprite | null = null;
-  private spiralFilter: BlurFilter | null = null;
+  private blurFilter: BlurFilter | null = null;
   private scatterPuzzle: ScatterPuzzle | null = null;
   private curveImage: HTMLImageElement | null = null;
   private curveDisplaySprite: Sprite | null = null;
@@ -223,8 +221,8 @@ export class LevelRenderer {
     // Clear any existing filters on the container
     (this.imageContainer as any).filters = undefined;
     
-    // Clear previous spiral filter
-    this.spiralFilter = null;
+    // Clear previous filters
+    this.blurFilter = null;
     
     // Load background image if level has one
     if (level.image) {
@@ -246,28 +244,24 @@ export class LevelRenderer {
           scale: 0
         });
         
-        // Try a simple BlurFilter instead of TwistFilter
-        console.log('Creating blur filter for testing');
-        this.spiralFilter = new BlurFilter({
-          strength: 20, // Blur strength
-          quality: 10   // Blur quality
+        // Create blur filter for blur effects
+        this.blurFilter = new BlurFilter({
+          strength: 0, // Will be updated dynamically
+          quality: 10
         });
-        console.log('Created blur filter:', this.spiralFilter);
         
-        // Apply filters to sprite (mutually exclusive - either displacement OR spiral, not both)
+        // Apply filters to sprite based on level configuration
         const filters: any[] = [];
         
-        if (level.spiralEffect) {
-          // Use spiral filter if spiral effect is defined
-          filters.push(this.spiralFilter);
-        } else {
-          // Use displacement filter if no spiral effect
+        if (level.imageFilterDist === 'warp' || level.imageFilterX === 'warp' || level.imageFilterY === 'warp') {
           filters.push(this.displacementFilter);
         }
         
+        if (level.imageFilterDist === 'blur' || level.imageFilterX === 'blur' || level.imageFilterY === 'blur') {
+          filters.push(this.blurFilter);
+        }
+        
         this.backgroundSprite.filters = filters;
-        console.log('Applied filters to background sprite:', filters.length, 'filters');
-        console.log('Filter types:', filters.map(f => f.constructor.name));
         this.imageContainer.addChild(this.backgroundSprite);
       } catch (error) {
         console.error(`Failed to load image: ${import.meta.env.BASE_URL}images/${level.image}`, error);
@@ -376,75 +370,86 @@ export class LevelRenderer {
     if (!level.image) {
       this.displacementFilter = null;
       this.displacementSprite = null;
+      this.blurFilter = null;
     }
   }
 
-  updateWarpFilter(playerX: number, playerY: number, level: Level): void {
-    if (this.displacementFilter && this.displacementSprite) {
-      // Calculate LevelManager.distance from player to target
-      const distX = Math.abs(playerX - level.target.x);
-      const distY = Math.abs(playerY - level.target.y);
+  updateDistanceFilter(playerX: number, playerY: number, level: Level): void {
+    if (!level.imageFilterDist) return;
+    
+    // Calculate cartesian distance from player to target
+    const distX = Math.abs(playerX - level.target.x);
+    const distY = Math.abs(playerY - level.target.y);
+    const distance = Math.sqrt(distX ** 2 + distY ** 2);
+    
+    if (level.imageFilterDist === 'warp' && this.displacementFilter) {
+      // Scale displacement based on distance (farther = more warp)
+      const warpStrength = distance * 6; // Linear scaling
       
-      // Calculate warp strength based on LevelManager.distance (farther = more warp)
-      const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
-      const normalizedDist = Math.min(Math.sqrt(distX ** 2 + distY ** 2) / maxDist, 1);
-      
-      // Scale displacement based on LevelManager.distance (farther = more warp)
-      const warpStrength = normalizedDist * 600; // Max displacement of 600 pixels
-      
-      // Apply position-based warping only
+      // Apply position-based warping
       const waveX = Math.sin(playerX * 0.02) * warpStrength * 0.5 +
                     Math.sin(playerY * 0.01) * warpStrength * 0.3;
       const waveY = Math.cos(playerY * 0.015) * warpStrength * 0.5 +
                     Math.cos(playerX * 0.012) * warpStrength * 0.3;
       
-      // Update displacement filter
       this.displacementFilter.scale.x = waveX;
       this.displacementFilter.scale.y = waveY;
     }
+    
+    if (level.imageFilterDist === 'blur' && this.blurFilter) {
+      // Scale blur based on distance (farther = more blur)
+      const blurStrength = distance * 0.1; // Linear scaling
+      this.blurFilter.strength = blurStrength;
+    }
   }
 
-  updateSpiralFilter(playerX: number, playerY: number, level: Level): void {
-    if (this.spiralFilter && level.spiralEffect) {
-      // Calculate distance from player to target
-      const distX = Math.abs(playerX - level.target.x);
-      const distY = Math.abs(playerY - level.target.y);
-      const distance = Math.sqrt(distX ** 2 + distY ** 2);
+  updateXFilter(playerX: number, _playerY: number, level: Level): void {
+    if (!level.imageFilterX) return;
+    
+    // Calculate signed X difference (guess.x - target.x)
+    const xDiff = playerX - level.target.x;
+    
+    if (level.imageFilterX === 'warp' && this.displacementFilter) {
+      // Scale displacement based on X difference
+      const warpStrength = Math.abs(xDiff) * 6; // Linear scaling
       
-      // Calculate blur strength based on distance (closer = more blur)
-      const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
-      const normalizedDist = Math.min(distance / maxDist, 1);
+      // Apply X-based warping
+      const waveX = Math.sin(playerX * 0.02) * warpStrength * 0.5;
+      const waveY = Math.cos(playerX * 0.012) * warpStrength * 0.3;
       
-      // Get spiral config (use level config if available, otherwise defaults)
-      const spiralConfig = level.spiralEffect || {
-        centerX: 0.5,
-        centerY: 0.5,
-        strength: 0.1,
-        rotation: 0,
-        spiralTightness: 1.0
-      };
+      this.displacementFilter.scale.x = waveX;
+      this.displacementFilter.scale.y = waveY;
+    }
+    
+    if (level.imageFilterX === 'blur' && this.blurFilter) {
+      // Scale blur based on X difference
+      const blurStrength = Math.abs(xDiff) * 0.1; // Linear scaling
+      this.blurFilter.strength = blurStrength;
+    }
+  }
+
+  updateYFilter(_playerX: number, playerY: number, level: Level): void {
+    if (!level.imageFilterY) return;
+    
+    // Calculate signed Y difference (guess.y - target.y)
+    const yDiff = playerY - level.target.y;
+    
+    if (level.imageFilterY === 'warp' && this.displacementFilter) {
+      // Scale displacement based on Y difference
+      const warpStrength = Math.abs(yDiff) * 6; // Linear scaling
       
-      // Invert so closer to target = more blur effect
-      const blurStrength = (1 - normalizedDist) * (spiralConfig.strength ?? 0.1) * 10; // Scale up for blur
+      // Apply Y-based warping
+      const waveX = Math.sin(playerY * 0.01) * warpStrength * 0.3;
+      const waveY = Math.cos(playerY * 0.015) * warpStrength * 0.5;
       
-      // Update blur filter strength
-      (this.spiralFilter as BlurFilter).strength = blurStrength;
-      
-      // Debug: Log the actual filter properties
-      if (Math.random() < 0.01) { // Log occasionally to avoid spam
-        console.log('BlurFilter properties:', {
-          strength: (this.spiralFilter as BlurFilter).strength,
-          quality: (this.spiralFilter as BlurFilter).quality
-        });
-      }
-      
-      // Debug logging (remove after testing)
-      if (Math.random() < 0.01) { // Log occasionally to avoid spam
-        console.log('Blur filter update:', {
-          distance,
-          blurStrength
-        });
-      }
+      this.displacementFilter.scale.x = waveX;
+      this.displacementFilter.scale.y = waveY;
+    }
+    
+    if (level.imageFilterY === 'blur' && this.blurFilter) {
+      // Scale blur based on Y difference
+      const blurStrength = Math.abs(yDiff) * 0.1; // Linear scaling
+      this.blurFilter.strength = blurStrength;
     }
   }
 
@@ -511,11 +516,10 @@ export class LevelRenderer {
 
 
   drawLevel(activePercentageGuess: Point, level: Level): void {
-    // Update warp filter for single image levels
-    this.updateWarpFilter(activePercentageGuess.x, activePercentageGuess.y, level);
-    
-    // Update spiral filter for levels with spiral effects
-    this.updateSpiralFilter(activePercentageGuess.x, activePercentageGuess.y, level);
+    // Update filters for single image levels
+    this.updateDistanceFilter(activePercentageGuess.x, activePercentageGuess.y, level);
+    this.updateXFilter(activePercentageGuess.x, activePercentageGuess.y, level);
+    this.updateYFilter(activePercentageGuess.x, activePercentageGuess.y, level);
     
     // Update multi-image alpha for multi-image levels
     this.updateMultiImageAlpha(activePercentageGuess, level);
