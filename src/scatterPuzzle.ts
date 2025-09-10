@@ -1,6 +1,7 @@
 // ScatterPuzzle class for jigsaw puzzle levels
 
 import { Application, Container, Graphics, Sprite, Texture, Rectangle } from "pixi.js";
+import { trueModulo } from "./helpers";
 
 // A type to store each puzzle piece's data
 interface PuzzlePiece {
@@ -143,32 +144,25 @@ export class ScatterPuzzle {
       let newX = piece.trueX + scatterFactor * piece.offsetX;
       let newY = piece.trueY + scatterFactor * piece.offsetY;
       
-      // Only apply wrapping when we're outside the level radius
-      // This allows pieces to be at their exact true positions when close to target
-      if (dist > this.levelRadius) {
-        // Special handling for edge pieces (trueX = 0 or trueY = 0)
-        // Allow them to have slightly negative positions to avoid wrapping
-        if (piece.trueX === 0 && newX < 0) {
-          // Keep left edge pieces at negative X when scattered left
-          newX = newX;
-        } else {
-          // Apply wrapping using modulo operations for non-edge pieces
-          newX = ((newX % canvasWidth) + canvasWidth) % canvasWidth;
-        }
-        
-        if (piece.trueY === 0 && newY < 0) {
-          // Keep top edge pieces at negative Y when scattered up
-          newY = newY;
-        } else {
-          // Apply wrapping using modulo operations for non-edge pieces
-          newY = ((newY % canvasHeight) + canvasHeight) % canvasHeight;
-        }
-      }
+      // Calculate piece dimensions
+      const pieceWidth = canvasWidth / this.jigsawGridSize;
+      const pieceHeight = canvasHeight / this.jigsawGridSize;
+      
+      // Extended range allows pieces to go fully off screen before wrapping
+      const extendedWidth = canvasWidth + 2 * pieceWidth;
+      const extendedHeight = canvasHeight + 2 * pieceHeight;
+      
+      // Apply wrapping with extended range - all pieces can go off screen
+      // Offset by pieceWidth/pieceHeight so wrapping starts from off-screen
+      newX = trueModulo((newX + pieceWidth),  extendedWidth) - pieceWidth;
+      newY = trueModulo((newY + pieceHeight), extendedHeight) - pieceHeight;
       
       piece.sprite.x = newX;
       piece.sprite.y = newY;
     }
   };
+
+  
 
   updateGuess(guess: { x: number; y: number }) {
     this.currentGuess = guess;
