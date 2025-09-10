@@ -1,7 +1,11 @@
 // Level-related types and logic for the pinpoint game
 
-import { Application, Sprite, Assets, Container, DisplacementFilter, Texture, Rectangle, Graphics } from "pixi.js";
+import { Application, Sprite, Assets, Container, DisplacementFilter, Texture, Rectangle, Graphics, BlurFilter } from "pixi.js";
+import { TwistFilter } from '@pixi/filter-twist';
 import { showCurve } from './gameParams_debug';
+
+// Debug: Check if TwistFilter is properly imported
+console.log('TwistFilter import check:', TwistFilter);
 
 export interface Point {
   x: number;
@@ -25,6 +29,13 @@ export class Level {
   jigsawSlope?: number;
   curveImage?: string;
   curveCursor?: string;
+  spiralEffect?: {
+    centerX?: number; // 0-1, relative to image
+    centerY?: number; // 0-1, relative to image
+    strength?: number; // 0-1, how strong the spiral effect is
+    rotation?: number; // rotation speed/amount
+    spiralTightness?: number; // how tight the spiral is
+  };
 
   constructor(levelData: any) {
     this.id = levelData.id;
@@ -38,6 +49,7 @@ export class Level {
     this.jigsawSlope = levelData.jigsawSlope;
     this.curveImage = levelData.curveImage;
     this.curveCursor = levelData.curveCursor;
+    this.spiralEffect = levelData.spiralEffect;
   }
 
   shouldShowCrosshair(): boolean {
@@ -331,6 +343,7 @@ export class LevelRenderer {
   private backgroundSprites: Sprite[] = [];
   private displacementFilter: DisplacementFilter | null = null;
   private displacementSprite: Sprite | null = null;
+  private spiralFilter: BlurFilter | null = null;
   private scatterPuzzle: ScatterPuzzle | null = null;
   private curveImage: HTMLImageElement | null = null;
   private curveDisplaySprite: Sprite | null = null;
@@ -388,6 +401,9 @@ export class LevelRenderer {
     // Clear any existing filters on the container
     (this.backgroundContainer as any).filters = undefined;
     
+    // Clear previous spiral filter
+    this.spiralFilter = null;
+    
     // Load background image if level has one
     if (level.image) {
       try {
@@ -408,7 +424,28 @@ export class LevelRenderer {
           scale: 0
         });
         
-        this.backgroundSprite.filters = [this.displacementFilter];
+        // Try a simple BlurFilter instead of TwistFilter
+        console.log('Creating blur filter for testing');
+        this.spiralFilter = new BlurFilter({
+          strength: 20, // Blur strength
+          quality: 10   // Blur quality
+        });
+        console.log('Created blur filter:', this.spiralFilter);
+        
+        // Apply filters to sprite (mutually exclusive - either displacement OR spiral, not both)
+        const filters: any[] = [];
+        
+        if (level.spiralEffect) {
+          // Use spiral filter if spiral effect is defined
+          filters.push(this.spiralFilter);
+        } else {
+          // Use displacement filter if no spiral effect
+          filters.push(this.displacementFilter);
+        }
+        
+        this.backgroundSprite.filters = filters;
+        console.log('Applied filters to background sprite:', filters.length, 'filters');
+        console.log('Filter types:', filters.map(f => f.constructor.name));
         this.backgroundContainer.addChild(this.backgroundSprite);
       } catch (error) {
         console.error(`Failed to load image: ${import.meta.env.BASE_URL}images/${level.image}`, error);
@@ -545,6 +582,50 @@ export class LevelRenderer {
     }
   }
 
+  updateSpiralFilter(playerX: number, playerY: number, level: Level): void {
+    if (this.spiralFilter && level.spiralEffect) {
+      // Calculate distance from player to target
+      const distX = Math.abs(playerX - level.target.x);
+      const distY = Math.abs(playerY - level.target.y);
+      const distance = Math.sqrt(distX ** 2 + distY ** 2);
+      
+      // Calculate blur strength based on distance (closer = more blur)
+      const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
+      const normalizedDist = Math.min(distance / maxDist, 1);
+      
+      // Get spiral config (use level config if available, otherwise defaults)
+      const spiralConfig = level.spiralEffect || {
+        centerX: 0.5,
+        centerY: 0.5,
+        strength: 0.1,
+        rotation: 0,
+        spiralTightness: 1.0
+      };
+      
+      // Invert so closer to target = more blur effect
+      const blurStrength = (1 - normalizedDist) * (spiralConfig.strength ?? 0.1) * 10; // Scale up for blur
+      
+      // Update blur filter strength
+      (this.spiralFilter as BlurFilter).strength = blurStrength;
+      
+      // Debug: Log the actual filter properties
+      if (Math.random() < 0.01) { // Log occasionally to avoid spam
+        console.log('BlurFilter properties:', {
+          strength: (this.spiralFilter as BlurFilter).strength,
+          quality: (this.spiralFilter as BlurFilter).quality
+        });
+      }
+      
+      // Debug logging (remove after testing)
+      if (Math.random() < 0.01) { // Log occasionally to avoid spam
+        console.log('Blur filter update:', {
+          distance,
+          blurStrength
+        });
+      }
+    }
+  }
+
   updateMultiImageAlpha(activePercentageGuess: Point, level: Level): void {
     // Multi-image alpha reveal: nearer to a sprite's target -> higher alpha
     if (level.multiImage && this.backgroundSprites.length === level.multiImage.length) {
@@ -610,6 +691,9 @@ export class LevelRenderer {
   drawLevel(activePercentageGuess: Point, level: Level): void {
     // Update warp filter for single image levels
     this.updateWarpFilter(activePercentageGuess.x, activePercentageGuess.y, level);
+    
+    // Update spiral filter for levels with spiral effects
+    this.updateSpiralFilter(activePercentageGuess.x, activePercentageGuess.y, level);
     
     // Update multi-image alpha for multi-image levels
     this.updateMultiImageAlpha(activePercentageGuess, level);
