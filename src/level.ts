@@ -1,6 +1,6 @@
 // Level-related types and logic for the pinpoint game
 
-import { Application, Sprite, Assets, Container, DisplacementFilter, BlurFilter } from "pixi.js";
+import { Application, Sprite, Assets, Container, DisplacementFilter, BlurFilter, NoiseFilter } from "pixi.js";
 import { TwistFilter } from '@pixi/filter-twist';
 import { showCurve } from './gameParams_debug';
 import { ScatterPuzzle } from './scatterPuzzle';
@@ -164,6 +164,7 @@ export class LevelRenderer {
   private displacementFilter: DisplacementFilter | null = null;
   private displacementSprite: Sprite | null = null;
   private blurFilter: BlurFilter | null = null;
+  private noiseFilter: NoiseFilter | null = null;
   private scatterPuzzle: ScatterPuzzle | null = null;
   private curveImage: HTMLImageElement | null = null;
   private curveDisplaySprite: Sprite | null = null;
@@ -223,6 +224,7 @@ export class LevelRenderer {
     
     // Clear previous filters
     this.blurFilter = null;
+    this.noiseFilter = null;
     
     // Load background image if level has one
     if (level.image) {
@@ -250,6 +252,12 @@ export class LevelRenderer {
           quality: 10
         });
         
+        // Create noise filter for noise effects
+        this.noiseFilter = new NoiseFilter({
+          noise: 0, // Will be updated dynamically
+          seed: Math.random() // Random seed for varied noise patterns
+        });
+        
         // Apply filters to sprite based on level configuration
         const filters: any[] = [];
         
@@ -259,6 +267,10 @@ export class LevelRenderer {
         
         if (level.imageFilterDist === 'blur' || level.imageFilterX === 'blur' || level.imageFilterY === 'blur') {
           filters.push(this.blurFilter);
+        }
+        
+        if (level.imageFilterDist === 'noise' || level.imageFilterX === 'noise' || level.imageFilterY === 'noise') {
+          filters.push(this.noiseFilter);
         }
         
         this.backgroundSprite.filters = filters;
@@ -371,6 +383,7 @@ export class LevelRenderer {
       this.displacementFilter = null;
       this.displacementSprite = null;
       this.blurFilter = null;
+      this.noiseFilter = null;
     }
   }
 
@@ -401,6 +414,12 @@ export class LevelRenderer {
       const blurStrength = distance * 0.1; // Linear scaling
       this.blurFilter.strength = blurStrength;
     }
+    
+    if (level.imageFilterDist === 'noise' && this.noiseFilter) {
+      // Scale noise based on distance (farther = more noise)
+      const noiseStrength = distance * 0.01; // Linear scaling
+      this.noiseFilter.noise = noiseStrength;
+    }
   }
 
   updateXFilter(playerX: number, _playerY: number, level: Level): void {
@@ -426,6 +445,12 @@ export class LevelRenderer {
       const blurStrength = Math.abs(xDiff) * 0.1; // Linear scaling
       this.blurFilter.strength = blurStrength;
     }
+    
+    if (level.imageFilterX === 'noise' && this.noiseFilter) {
+      // Scale noise based on X difference
+      const noiseStrength = Math.abs(xDiff) * 0.06; // Linear scaling
+      this.noiseFilter.noise = noiseStrength;
+    }
   }
 
   updateYFilter(_playerX: number, playerY: number, level: Level): void {
@@ -450,6 +475,12 @@ export class LevelRenderer {
       // Scale blur based on Y difference
       const blurStrength = Math.abs(yDiff) * 0.1; // Linear scaling
       this.blurFilter.strength = blurStrength;
+    }
+    
+    if (level.imageFilterY === 'noise' && this.noiseFilter) {
+      // Scale noise based on Y difference
+      const noiseStrength = Math.abs(yDiff) * 0.01; // Linear scaling
+      this.noiseFilter.noise = noiseStrength;
     }
   }
 

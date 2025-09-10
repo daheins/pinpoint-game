@@ -22,7 +22,8 @@
     "target": { "x": 35.6, "y": 29.25 },
     "targetRadius": 20,
     "image": "genshinFireworks.webp",
-    "imageFilterDist": "warp"
+    "imageFilterX": "noise",
+    "imageFilterY": "warp"
   },
   "4": {
     "displayName": "Level 4",
