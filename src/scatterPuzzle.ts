@@ -21,17 +21,17 @@ export class ScatterPuzzle {
   private target: { x: number; y: number };
   private jigsawGridSize = 10; // 10x10 grid
   private currentGuess: { x: number; y: number } = { x: 0, y: 0 };
-  private levelRadius: number;
   private jigsawSlope?: number;
+  private jigsawMovement?: number;
   private targetPiece: PuzzlePiece | null = null;
   private targetPieceOffset: { x: number; y: number } = { x: 0, y: 0 };
 
-  constructor(app: Application, image: Texture, target: { x: number; y: number }, parentContainer: Container, levelRadius: number, jigsawSlope?: number) {
+  constructor(app: Application, image: Texture, target: { x: number; y: number }, parentContainer: Container, jigsawSlope?: number, jigsawMovement?: number) {
     this.app = app;
     this.image = image;
     this.target = target;
-    this.levelRadius = levelRadius;
     this.jigsawSlope = jigsawSlope;
+    this.jigsawMovement = jigsawMovement;
     this.container = new Container();
     parentContainer.addChild(this.container);
 
@@ -141,8 +141,10 @@ export class ScatterPuzzle {
       }
 
       // Regular scatter logic for non-target pieces
-      let newX = piece.trueX + scatterFactor * piece.offsetX;
-      let newY = piece.trueY + scatterFactor * piece.offsetY;
+      // Apply jigsawMovement factor to the scatter movement (default to 1 if not specified)
+      const movementFactor = this.jigsawMovement !== undefined ? this.jigsawMovement : 1;
+      let newX = piece.trueX + scatterFactor * piece.offsetX * movementFactor;
+      let newY = piece.trueY + scatterFactor * piece.offsetY * movementFactor;
       
       // Calculate piece dimensions
       const pieceWidth = canvasWidth / this.jigsawGridSize;

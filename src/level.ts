@@ -31,6 +31,7 @@ export class Level {
   multiImage?: MultiImageElement[];
   jigsawImage?: string;
   jigsawSlope?: number;
+  jigsawMovement?: number;
   curveImage?: string;
   curveCursor?: string;
 
@@ -44,6 +45,7 @@ export class Level {
     this.multiImage = levelData.multiImage;
     this.jigsawImage = levelData.jigsawImage;
     this.jigsawSlope = levelData.jigsawSlope;
+    this.jigsawMovement = levelData.jigsawMovement;
     this.curveImage = levelData.curveImage;
     this.curveCursor = levelData.curveCursor;
     this.imageFilterDist = levelData.imageFilterDist;
@@ -320,7 +322,7 @@ export class LevelRenderer {
           x: (level.target.x / 100) * this.canvasWidth,
           y: (level.target.y / 100) * this.canvasHeight
         };
-        this.scatterPuzzle = new ScatterPuzzle(this.app, texture, target, this.imageContainer, level.targetRadius, level.jigsawSlope);
+        this.scatterPuzzle = new ScatterPuzzle(this.app, texture, target, this.imageContainer, level.jigsawSlope, level.jigsawMovement);
       } catch (error) {
         console.error(`Failed to load jigsaw image: ${import.meta.env.BASE_URL}images/${level.jigsawImage}`, error);
         this.scatterPuzzle = null;
