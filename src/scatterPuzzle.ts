@@ -40,17 +40,40 @@ export class ScatterPuzzle {
   }
 
   private createPieces() {
-    const width = this.app.renderer.width;
-    const height = this.app.renderer.height;
-    const pieceW = width / this.jigsawGridSize;
-    const pieceH = height / this.jigsawGridSize;
+    const canvasWidth = this.app.renderer.width;
+    const canvasHeight = this.app.renderer.height;
+    
+    // Calculate the actual scaled dimensions of the image
+    const imageWidth = this.image.width;
+    const imageHeight = this.image.height;
+    
+    // Calculate scale factors to fit the image within the canvas
+    const scaleX = canvasWidth / imageWidth;
+    const scaleY = canvasHeight / imageHeight;
+    
+    // Use the smaller scale factor to ensure the image fits completely within the canvas
+    const scale = Math.min(scaleX, scaleY);
+    
+    // Calculate the actual scaled image dimensions
+    const scaledImageWidth = imageWidth * scale;
+    const scaledImageHeight = imageHeight * scale;
+    
+    // Create pieces based on the scaled image dimensions
+    const pieceW = scaledImageWidth / this.jigsawGridSize;
+    const pieceH = scaledImageHeight / this.jigsawGridSize;
 
     for (let row = 0; row < this.jigsawGridSize; row++) {
       for (let col = 0; col < this.jigsawGridSize; col++) {
-        const frame = new Rectangle(col * pieceW, row * pieceH, pieceW, pieceH);
+        // Create frame based on original image coordinates (before scaling)
+        const originalPieceW = imageWidth / this.jigsawGridSize;
+        const originalPieceH = imageHeight / this.jigsawGridSize;
+        const frame = new Rectangle(col * originalPieceW, row * originalPieceH, originalPieceW, originalPieceH);
         const texture = new Texture({ source: this.image.source, frame });
 
         const sprite = new Sprite(texture);
+        // Scale the sprite to match the scaled image
+        sprite.scale.set(scale);
+        // Position the sprite from top-left corner
         sprite.x = col * pieceW;
         sprite.y = row * pieceH;
 
@@ -71,19 +94,26 @@ export class ScatterPuzzle {
         this.pieces.push(piece);
 
         // Check if this piece contains the target
-        if (this.target.x >= col * pieceW && this.target.x < (col + 1) * pieceW &&
-            this.target.y >= row * pieceH && this.target.y < (row + 1) * pieceH) {
+        const pieceLeft = col * pieceW;
+        const pieceRight = (col + 1) * pieceW;
+        const pieceTop = row * pieceH;
+        const pieceBottom = (row + 1) * pieceH;
+        
+        if (this.target.x >= pieceLeft && this.target.x < pieceRight &&
+            this.target.y >= pieceTop && this.target.y < pieceBottom) {
           this.targetPiece = piece;
           // Calculate offset from target to piece top-left corner (sprite position)
           this.targetPieceOffset = {
-            x: this.target.x - (col * pieceW),
-            y: this.target.y - (row * pieceH)
+            x: this.target.x - pieceLeft,
+            y: this.target.y - pieceTop
           };
           
           // Create a black border for the target piece
           const border = new Graphics();
           border.rect(0, 0, pieceW, pieceH);
           border.stroke({ width: 4, color: 0x000000 });
+          border.x = pieceLeft;
+          border.y = pieceTop;
           
           // Add border to the piece and container
           piece.border = border;

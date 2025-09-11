@@ -181,6 +181,29 @@ export class LevelRenderer {
     this.canvasHeight = canvasHeight;
   }
 
+  // Helper method to scale sprite to fit canvas while maintaining aspect ratio
+  private scaleSpriteToFit(sprite: Sprite): void {
+    const texture = sprite.texture;
+    const imageWidth = texture.width;
+    const imageHeight = texture.height;
+    const canvasWidth = this.canvasWidth;
+    const canvasHeight = this.canvasHeight;
+    
+    // Calculate scale factors to fit the image within the canvas
+    const scaleX = canvasWidth / imageWidth;
+    const scaleY = canvasHeight / imageHeight;
+    
+    // Use the smaller scale factor to ensure the image fits completely within the canvas
+    const scale = Math.min(scaleX, scaleY);
+    
+    // Apply the scale
+    sprite.scale.set(scale);
+    
+    // Center the sprite on the canvas
+    sprite.x = (canvasWidth - imageWidth * scale) / 2;
+    sprite.y = (canvasHeight - imageHeight * scale) / 2;
+  }
+
   async loadLevel(level: Level): Promise<void> {
     // Clear previous background
     if (this.backgroundSprite) {
@@ -233,14 +256,12 @@ export class LevelRenderer {
       try {
         const texture = await Assets.load(`${import.meta.env.BASE_URL}images/${level.image}`);
         this.backgroundSprite = new Sprite(texture);
-        this.backgroundSprite.width = this.canvasWidth;
-        this.backgroundSprite.height = this.canvasHeight;
+        this.scaleSpriteToFit(this.backgroundSprite);
         
         // Create displacement texture for warping effect
         const displacementTexture = await Assets.load(`${import.meta.env.BASE_URL}images/${level.image}`);
         this.displacementSprite = new Sprite(displacementTexture);
-        this.displacementSprite.width = this.canvasWidth;
-        this.displacementSprite.height = this.canvasHeight;
+        this.scaleSpriteToFit(this.displacementSprite);
         
         // Create displacement filter
         this.displacementFilter = new DisplacementFilter({
@@ -290,8 +311,7 @@ export class LevelRenderer {
         for (const imageElement of level.multiImage) {
           const texture = await Assets.load(`${import.meta.env.BASE_URL}images/${imageElement.image}`);
           const sprite = new Sprite(texture);
-          sprite.width = this.canvasWidth;
-          sprite.height = this.canvasHeight;
+          this.scaleSpriteToFit(sprite);
           this.backgroundSprites.push(sprite);
           this.imageContainer.addChild(sprite);
         }
@@ -305,8 +325,7 @@ export class LevelRenderer {
       try {
         const texture = await Assets.load(`${import.meta.env.BASE_URL}images/${level.fixedImage}`);
         this.fixedImageSprite = new Sprite(texture);
-        this.fixedImageSprite.width = this.canvasWidth;
-        this.fixedImageSprite.height = this.canvasHeight;
+        this.scaleSpriteToFit(this.fixedImageSprite);
         this.imageContainer.addChild(this.fixedImageSprite);
       } catch (error) {
         console.error(`Failed to load fixed image: ${import.meta.env.BASE_URL}images/${level.fixedImage}`, error);
@@ -345,8 +364,7 @@ export class LevelRenderer {
         if (showCurve) {
           const texture = await Assets.load(`${import.meta.env.BASE_URL}images/${level.curveImage}`);
           this.curveDisplaySprite = new Sprite(texture);
-          this.curveDisplaySprite.width = this.canvasWidth;
-          this.curveDisplaySprite.height = this.canvasHeight;
+          this.scaleSpriteToFit(this.curveDisplaySprite);
           
           // Add curve display sprite on top of everything (like fixed image)
           this.imageContainer.addChild(this.curveDisplaySprite);
