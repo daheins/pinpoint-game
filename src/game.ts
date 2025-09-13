@@ -8,6 +8,9 @@ import { TABLET_WIDTH, TABLET_HEIGHT } from './gameParams';
 // Import debug utilities
 import { createCurveDistanceDisplay, createCoordinateDisplay, createTargetCircle } from './game_debug';
 
+// Import dialog manager
+import { DialogManager } from './dialogManager';
+
 import { Application, Container, Graphics, Text, Sprite } from "pixi.js";
 
 // Function to load all levels from consolidated levels file
@@ -54,21 +57,15 @@ container.style.height = `${TABLET_HEIGHT}px`;
 // --- PIXI.js Setup ---
 const app = new Application();
 
-// Create main container
 const gameContainer = new Container();
-
-// Create image container
 const imageContainer = new Container();
-
-// Create UI container for crosshair and effects
 const uiContainer = new Container();
 
-// Initialize level renderer
 let levelRenderer: LevelRenderer;
-
-// Available levels - dynamically loaded from levels folder and sorted by ID
-let levels: Level[] = [];
+let dialogManager: DialogManager;
 let levelManager: LevelManager;
+
+let levels: Level[] = [];
 let currentLevel: Level;
 let mouse: Point = { x: 0, y: 0 };
 let guess: Point = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
@@ -128,6 +125,11 @@ async function loadLevel(levelIndex: number) {
   }
   successStartMs = null;
   successMessageVisible = false;
+  
+  // Show dialog if level has dialog text
+  if (currentLevel.dialogText && currentLevel.dialogText.length > 0) {
+    await dialogManager.showDialog(currentLevel.dialogText, currentLevel.dialogCharacterImage);
+  }
   
   // Update active level in selector
   document.querySelectorAll(".level-box").forEach((box, index) => {
@@ -236,6 +238,9 @@ async function initializeGame() {
   
   // Initialize level renderer
   levelRenderer = new LevelRenderer(app, imageContainer, TABLET_WIDTH, TABLET_HEIGHT);
+  
+  // Initialize dialog manager
+  dialogManager = new DialogManager(uiContainer);
   
   // Load levels
   levels = await loadLevels();

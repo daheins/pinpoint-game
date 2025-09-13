@@ -1,6 +1,8 @@
 {
   "0": {
     "displayName": "Level 1",
+    "dialogText": ["Help me find my art"],
+    "dialogCharacterImage": "char_smile.png",
     "target": { "x": 7.8, "y": 37.5 },
     "targetRadius": 8,
     "jigsawImage": "wallhaven-rd3pjw.jpg",

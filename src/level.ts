@@ -34,6 +34,8 @@ export class Level {
   jigsawMovement?: number;
   curveImage?: string;
   curveCursor?: string;
+  dialogText?: string[];
+  dialogCharacterImage?: string;
 
   constructor(levelData: any) {
     this.id = levelData.id;
@@ -51,6 +53,8 @@ export class Level {
     this.imageFilterDist = levelData.imageFilterDist;
     this.imageFilterX = levelData.imageFilterX;
     this.imageFilterY = levelData.imageFilterY;
+    this.dialogText = levelData.dialogText;
+    this.dialogCharacterImage = levelData.dialogCharacterImage;
   }
 
   shouldShowCrosshair(): boolean {
