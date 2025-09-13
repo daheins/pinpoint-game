@@ -36,6 +36,7 @@ export class Level {
   curveCursor?: string;
   dialogText?: string[];
   dialogCharacterImage?: string;
+  hideCanvas?: boolean;
 
   constructor(levelData: any) {
     this.id = levelData.id;
@@ -55,6 +56,7 @@ export class Level {
     this.imageFilterY = levelData.imageFilterY;
     this.dialogText = levelData.dialogText;
     this.dialogCharacterImage = levelData.dialogCharacterImage;
+    this.hideCanvas = levelData.hideCanvas;
   }
 
   shouldShowCrosshair(): boolean {

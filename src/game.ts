@@ -60,6 +60,7 @@ const app = new Application();
 const gameContainer = new Container();
 const imageContainer = new Container();
 const uiContainer = new Container();
+const dialogContainer = new Container();
 
 let levelRenderer: LevelRenderer;
 let dialogManager: DialogManager;
@@ -98,6 +99,15 @@ function createLevelSelector() {
 async function loadLevel(levelIndex: number) {
   currentLevel = levelManager.loadLevel(levelIndex);
   levelNameDisplay.textContent = currentLevel.displayName;
+  
+  // Handle container visibility based on hideCanvas property
+  if (currentLevel.hideCanvas) {
+    imageContainer.visible = false;
+    uiContainer.visible = false;
+  } else {
+    imageContainer.visible = true;
+    uiContainer.visible = true;
+  }
   
   // Clear previous curve cursor sprite from UI container
   if (curveCursorSprite) {
@@ -233,6 +243,7 @@ async function initializeGame() {
   
   // Set up PIXI containers
   app.stage.addChild(gameContainer);
+  app.stage.addChild(dialogContainer);
   gameContainer.addChild(imageContainer);
   gameContainer.addChild(uiContainer);
   
@@ -240,7 +251,7 @@ async function initializeGame() {
   levelRenderer = new LevelRenderer(app, imageContainer, TABLET_WIDTH, TABLET_HEIGHT);
   
   // Initialize dialog manager
-  dialogManager = new DialogManager(uiContainer);
+  dialogManager = new DialogManager(dialogContainer);
   
   // Load levels
   levels = await loadLevels();
