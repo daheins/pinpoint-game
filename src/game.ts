@@ -85,6 +85,7 @@ let successMessageVisible = false;
 let crosshairGraphics: Graphics | null = null;
 let curveCursorSprite: Sprite | null = null;
 let successText: Text | null = null;
+let hasPlayerInteractedInLevel = false;
 
 // --- Level Management ---
 function createLevelSelector() {
@@ -140,6 +141,12 @@ async function loadLevel(levelIndex: number) {
   }
   successStartMs = null;
   successMessageVisible = false;
+  hasPlayerInteractedInLevel = false;
+  
+  if (successText) {
+    uiContainer.removeChild(successText);
+    successText = null;
+  }
   
   // Show dialog if level has dialog text
   if (currentLevel.dialogText && currentLevel.dialogText.length > 0) {
@@ -332,8 +339,8 @@ function gameLoop() {
   createCoordinateDisplay(uiContainer, currentLevel, guess);
   createTargetCircle(uiContainer, currentLevel);
 
-  // Check for success only when mouse is not pressed
-  if (!isMouseButtonPressed && successStartMs === null && currentLevel) {
+  // Check for success only when mouse is not pressed and level interaction began
+  if (!isMouseButtonPressed && successStartMs === null && currentLevel && hasPlayerInteractedInLevel) {
     const target = {
       x: (currentLevel.target.x / 100) * TABLET_WIDTH,
       y: (currentLevel.target.y / 100) * TABLET_HEIGHT
@@ -430,6 +437,7 @@ canvas.addEventListener("mousedown", () => {
   isMouseButtonPressed = true;
   successStartMs = null; // cancel any success animation while dragging
   successMessageVisible = false;
+  hasPlayerInteractedInLevel = true;
   guess.x = mouse.x;
   guess.y = mouse.y;
   
