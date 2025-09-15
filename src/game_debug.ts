@@ -3,7 +3,7 @@
 import { Container, Graphics, Text } from "pixi.js";
 import { Level, LevelRenderer } from './level';
 import type { Point } from './level';
-import { TABLET_WIDTH, TABLET_HEIGHT } from './gameParams';
+import { ART_WIDTH, ART_HEIGHT } from './gameParams';
 import { showDebugTools } from './gameParams_debug';
 
 // Debug display elements
@@ -23,8 +23,8 @@ export function createCurveDistanceDisplay(
   
   if (showDebugTools && currentLevel && currentLevel.curveImage) {
     const activePercentageGuess = {
-      x: (guess.x / TABLET_WIDTH) * 100,
-      y: (guess.y / TABLET_HEIGHT) * 100,
+      x: (guess.x / ART_WIDTH) * 100,
+      y: (guess.y / ART_HEIGHT) * 100,
     };
     
     const curveDistance = levelRenderer.getCurveDistance(activePercentageGuess);
@@ -60,8 +60,8 @@ export function createCurveDistanceDisplay(
     text.y = padding;
     
     // Position container in bottom right corner, above the coordinate display
-    curveDistanceContainer.x = TABLET_WIDTH - bgWidth - 10;
-    curveDistanceContainer.y = TABLET_HEIGHT - (bgHeight * 2) - 20;
+    curveDistanceContainer.x = ART_WIDTH - bgWidth - 10;
+    curveDistanceContainer.y = ART_HEIGHT - (bgHeight * 2) - 20;
     
     uiContainer.addChild(curveDistanceContainer);
     curveDistanceDisplay = curveDistanceContainer as any;
@@ -79,8 +79,8 @@ export function createCoordinateDisplay(
   
   if (showDebugTools && currentLevel) {
     const activePercentageGuess = {
-      x: (guess.x / TABLET_WIDTH) * 100,
-      y: (guess.y / TABLET_HEIGHT) * 100,
+      x: (guess.x / ART_WIDTH) * 100,
+      y: (guess.y / ART_HEIGHT) * 100,
     };
     
     const text = new Text({
@@ -113,8 +113,8 @@ export function createCoordinateDisplay(
     text.y = padding;
     
     // Position container in bottom right corner with some padding
-    coordinateContainer.x = TABLET_WIDTH - bgWidth - 10;
-    coordinateContainer.y = TABLET_HEIGHT - bgHeight - 10;
+    coordinateContainer.x = ART_WIDTH - bgWidth - 10;
+    coordinateContainer.y = ART_HEIGHT - bgHeight - 10;
     
     uiContainer.addChild(coordinateContainer);
     coordinateDisplay = coordinateContainer as any;
@@ -131,8 +131,8 @@ export function createTargetCircle(
   
   if (showDebugTools && currentLevel) {
     // Convert target percentage to pixel coordinates
-    const targetX = (currentLevel.target.x / 100) * TABLET_WIDTH;
-    const targetY = (currentLevel.target.y / 100) * TABLET_HEIGHT;
+    const targetX = (currentLevel.target.x / 100) * ART_WIDTH;
+    const targetY = (currentLevel.target.y / 100) * ART_HEIGHT;
     const radius = currentLevel.targetRadius;
     
     const circle = new Graphics();

@@ -3,6 +3,7 @@
 import { Application, Sprite, Assets, Container, DisplacementFilter, BlurFilter, NoiseFilter, Graphics } from "pixi.js";
 import { TwistFilter } from '@pixi/filter-twist';
 import { showCurve } from './gameParams_debug';
+import { ART_WIDTH, ART_HEIGHT, TABLET_WIDTH, TABLET_HEIGHT } from './gameParams';
 import { ScatterPuzzle } from './scatterPuzzle';
 
 // Debug: Check if TwistFilter is properly imported
@@ -38,6 +39,7 @@ export class Level {
   dialogCharacterImage?: string;
   dialogPosition?: string;
   hideCanvas?: boolean;
+  hideCrosshair?: boolean;
 
   constructor(levelData: any) {
     this.id = levelData.id;
@@ -59,9 +61,15 @@ export class Level {
     this.dialogCharacterImage = levelData.dialogCharacterImage;
     this.dialogPosition = levelData.dialogPosition;
     this.hideCanvas = levelData.hideCanvas;
+    this.hideCrosshair = levelData.hideCrosshair;
+
+    if (!this.target) this.target = { x: 50, y: 50 };
+    if (!this.targetRadius) this.targetRadius = 0;
   }
 
   shouldShowCrosshair(): boolean {
+    if (!!this.hideCrosshair) return false;
+
     return !this.jigsawImage && !this.curveCursor;
   }
 }
@@ -352,7 +360,7 @@ export class LevelRenderer {
           x: (level.target.x / 100) * this.canvasWidth,
           y: (level.target.y / 100) * this.canvasHeight
         };
-        this.scatterPuzzle = new ScatterPuzzle(this.app, texture, target, this.imageContainer, level.jigsawSlope, level.jigsawMovement);
+        this.scatterPuzzle = new ScatterPuzzle(this.app, texture, target, this.imageContainer, level.jigsawSlope, level.jigsawMovement, this.canvasWidth, this.canvasHeight);
       } catch (error) {
         console.error(`Failed to load jigsaw image: ${import.meta.env.BASE_URL}images/${level.jigsawImage}`, error);
         this.scatterPuzzle = null;
@@ -394,8 +402,8 @@ export class LevelRenderer {
         this.curveCursorSprite = new Sprite(texture);
         
         // Set initial position to middle of canvas
-        this.curveCursorSprite.x = this.canvasWidth / 2;
-        this.curveCursorSprite.y = this.canvasHeight / 2;
+        this.curveCursorSprite.x = ART_WIDTH / 2;
+        this.curveCursorSprite.y = ART_HEIGHT / 2;
         
         // Center the sprite anchor
         this.curveCursorSprite.anchor.set(0.5, 0.5);
@@ -539,6 +547,11 @@ export class LevelRenderer {
       if (!this.gradientGraphics) {
         // Create new gradient graphics
         this.gradientGraphics = new Graphics();
+        // Center within the tablet by offsetting to ART viewport origin
+        const artOriginX = (TABLET_WIDTH - ART_WIDTH) / 2;
+        const artOriginY = (TABLET_HEIGHT - ART_HEIGHT) / 2;
+        this.gradientGraphics.x = artOriginX;
+        this.gradientGraphics.y = artOriginY;
         this.gradientGraphics.rect(0, 0, this.canvasWidth, this.canvasHeight);
         this.gradientContainer.addChild(this.gradientGraphics);
       }

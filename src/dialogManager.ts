@@ -115,11 +115,11 @@ export class DialogManager {
     }
 
     let dialogX = (TABLET_WIDTH - bgWidth) / 2;
-    let dialogY = TABLET_HEIGHT - bgHeight - 20;
+    let dialogY = (TABLET_HEIGHT - bgHeight) / 2;
 
-    if (position === 'middle') {
+    if (position === 'bottom') {
       dialogX = (TABLET_WIDTH - bgWidth) / 2;
-      dialogY = (TABLET_HEIGHT - bgHeight) / 2;
+      dialogY = TABLET_HEIGHT - bgHeight - 20;
     }
 
     // Position dialog content at target location; keep overlay at 0,0

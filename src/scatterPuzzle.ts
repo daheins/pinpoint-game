@@ -25,13 +25,17 @@ export class ScatterPuzzle {
   private jigsawMovement?: number;
   private targetPiece: PuzzlePiece | null = null;
   private targetPieceOffset: { x: number; y: number } = { x: 0, y: 0 };
+  private canvasWidth: number;
+  private canvasHeight: number;
 
-  constructor(app: Application, image: Texture, target: { x: number; y: number }, parentContainer: Container, jigsawSlope?: number, jigsawMovement?: number) {
+  constructor(app: Application, image: Texture, target: { x: number; y: number }, parentContainer: Container, jigsawSlope?: number, jigsawMovement?: number, canvasWidth?: number, canvasHeight?: number) {
     this.app = app;
     this.image = image;
     this.target = target;
     this.jigsawSlope = jigsawSlope;
     this.jigsawMovement = jigsawMovement;
+    this.canvasWidth = canvasWidth ?? app.renderer.width;
+    this.canvasHeight = canvasHeight ?? app.renderer.height;
     this.container = new Container();
     parentContainer.addChild(this.container);
 
@@ -40,8 +44,8 @@ export class ScatterPuzzle {
   }
 
   private createPieces() {
-    const canvasWidth = this.app.renderer.width;
-    const canvasHeight = this.app.renderer.height;
+    const canvasWidth = this.canvasWidth;
+    const canvasHeight = this.canvasHeight;
     
     // Calculate the actual scaled dimensions of the image
     const imageWidth = this.image.width;
@@ -145,8 +149,8 @@ export class ScatterPuzzle {
     // scatter factor increases linearly with distance (no maximum limit)
     const scatterFactor = dist / 400; // adjust divisor for sensitivity
 
-    const canvasWidth = this.app.renderer.width;
-    const canvasHeight = this.app.renderer.height;
+    const canvasWidth = this.canvasWidth;
+    const canvasHeight = this.canvasHeight;
 
     for (const piece of this.pieces) {
       // Handle target piece differently - it follows the cursor

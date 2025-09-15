@@ -3,7 +3,7 @@ import type { Point } from './level';
 import { Level, LevelManager, LevelRenderer } from './level';
 
 // Import game parameters
-import { TABLET_WIDTH, TABLET_HEIGHT } from './gameParams';
+import { TABLET_WIDTH, TABLET_HEIGHT, ART_WIDTH, ART_HEIGHT } from './gameParams';
 
 // Import debug utilities
 import { createCurveDistanceDisplay, createCoordinateDisplay, createTargetCircle } from './game_debug';
@@ -11,7 +11,7 @@ import { createCurveDistanceDisplay, createCoordinateDisplay, createTargetCircle
 // Import dialog manager
 import { DialogManager } from './dialogManager';
 
-import { Application, Container, Graphics, Text, Sprite } from "pixi.js";
+import { Application, Container, Graphics, Text, Sprite, Assets } from "pixi.js";
 import { showLevelSelector } from './gameParams_debug';
 
 // Function to load all levels from consolidated levels file
@@ -65,6 +65,7 @@ if (levelSelector) {
 const app = new Application();
 
 const gameContainer = new Container();
+const artContainer = new Container();
 const imageContainer = new Container();
 const uiContainer = new Container();
 const dialogContainer = new Container();
@@ -73,6 +74,7 @@ const gradientContainer = new Container();
 let levelRenderer: LevelRenderer;
 let dialogManager: DialogManager;
 let levelManager: LevelManager;
+let tabletBackgroundSprite: Sprite | null = null;
 
 let levels: Level[] = [];
 let currentLevel: Level;
@@ -86,6 +88,8 @@ let crosshairGraphics: Graphics | null = null;
 let curveCursorSprite: Sprite | null = null;
 let successText: Text | null = null;
 let hasPlayerInteractedInLevel = false;
+const artOriginX = (TABLET_WIDTH - ART_WIDTH) / 2;
+const artOriginY = (TABLET_HEIGHT - ART_HEIGHT) / 2;
 
 // --- Level Management ---
 function createLevelSelector() {
@@ -111,8 +115,14 @@ async function loadLevel(levelIndex: number) {
   
   if (currentLevel.hideCanvas) {
     gameContainer.visible = false;
+    if (tabletBackgroundSprite) {
+      tabletBackgroundSprite.visible = false;
+    }
   } else {
     gameContainer.visible = true;
+    if (tabletBackgroundSprite) {
+      tabletBackgroundSprite.visible = true;
+    }
   }
   
   // Clear previous curve cursor sprite from UI container
@@ -133,12 +143,8 @@ async function loadLevel(levelIndex: number) {
     curveCursorSprite = newCurveCursorSprite;
   }
   
-  // Reset game state - set initial guess to middle for curve cursor levels
-  if (currentLevel.curveCursor) {
-    guess = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
-  } else {
-    guess = { x: TABLET_WIDTH / 2, y: TABLET_HEIGHT / 2 };
-  }
+  // Reset game state - set initial guess to middle of the art viewport
+  guess = { x: ART_WIDTH / 2, y: ART_HEIGHT / 2 };
   successStartMs = null;
   successMessageVisible = false;
   hasPlayerInteractedInLevel = false;
@@ -150,7 +156,7 @@ async function loadLevel(levelIndex: number) {
   
   // Show dialog if level has dialog text
   if (currentLevel.dialogText && currentLevel.dialogText.length > 0) {
-    const isDialogOnly = !!currentLevel.hideCanvas;
+    const isDialogOnly = !!currentLevel.hideCanvas || !!currentLevel.hideCrosshair;
     await dialogManager.showDialog(
       currentLevel.dialogText, 
       currentLevel.dialogCharacterImage, 
@@ -225,8 +231,8 @@ function createSuccessText() {
   const textContainer = new Container();
   textContainer.addChild(backgroundGraphics);
   textContainer.addChild(text);
-  textContainer.x = TABLET_WIDTH / 2;
-  textContainer.y = TABLET_HEIGHT / 2;
+  textContainer.x = ART_WIDTH / 2;
+  textContainer.y = ART_HEIGHT / 2;
   
   uiContainer.addChild(textContainer);
   
@@ -269,11 +275,31 @@ async function initializeGame() {
   app.stage.addChild(gameContainer);
   app.stage.addChild(dialogContainer);
   gameContainer.addChild(gradientContainer);
-  gameContainer.addChild(imageContainer);
-  gameContainer.addChild(uiContainer);
+  // Centered art container holds all art and UI drawn in art space
+  artContainer.x = artOriginX;
+  artContainer.y = artOriginY;
+  gameContainer.addChild(artContainer);
+  artContainer.addChild(imageContainer);
+  artContainer.addChild(uiContainer);
+  
+  // Load and add persistent tablet background behind all game content (start hidden)
+  try {
+    const texture = await Assets.load(`${import.meta.env.BASE_URL}images/tablet-canvas.png`);
+    tabletBackgroundSprite = new Sprite(texture);
+    // Size to canvas and position at origin so it's always fully covered
+    tabletBackgroundSprite.x = 0;
+    tabletBackgroundSprite.y = 0;
+    tabletBackgroundSprite.width = TABLET_WIDTH;
+    tabletBackgroundSprite.height = TABLET_HEIGHT;
+    tabletBackgroundSprite.visible = false; // Start hidden
+    // Ensure it renders below gradient/images/UI
+    gradientContainer.addChildAt(tabletBackgroundSprite, 0);
+  } catch (error) {
+    console.error('Failed to load tablet background image:', error);
+  }
   
   // Initialize level renderer
-  levelRenderer = new LevelRenderer(app, imageContainer, gradientContainer, TABLET_WIDTH, TABLET_HEIGHT);
+  levelRenderer = new LevelRenderer(app, imageContainer, gradientContainer, ART_WIDTH, ART_HEIGHT);
   
   // Initialize dialog manager
   dialogManager = new DialogManager(dialogContainer);
@@ -308,8 +334,8 @@ function gameLoop() {
 
   // Always use current guess position
   const activePercentageGuess = {
-    x: (guess.x / TABLET_WIDTH) * 100,
-    y: (guess.y / TABLET_HEIGHT) * 100,
+    x: (guess.x / ART_WIDTH) * 100,
+    y: (guess.y / ART_HEIGHT) * 100,
   };
 
   // Update level-specific rendering
@@ -342,8 +368,8 @@ function gameLoop() {
   // Check for success only when mouse is not pressed and level interaction began
   if (!isMouseButtonPressed && successStartMs === null && currentLevel && hasPlayerInteractedInLevel) {
     const target = {
-      x: (currentLevel.target.x / 100) * TABLET_WIDTH,
-      y: (currentLevel.target.y / 100) * TABLET_HEIGHT
+      x: (currentLevel.target.x / 100) * ART_WIDTH,
+      y: (currentLevel.target.y / 100) * ART_HEIGHT
     };
     const wasFound = levelManager.isGuessSuccessful(guess, target, currentLevel.targetRadius);
     if (wasFound) {
@@ -404,8 +430,15 @@ canvas.addEventListener("mousemove", (e: MouseEvent) => {
   const scaleX = TABLET_WIDTH / rect.width;
   const scaleY = TABLET_HEIGHT / rect.height;
 
-  mouse.x = (e.clientX - rect.left) * scaleX;
-  mouse.y = (e.clientY - rect.top) * scaleY;
+  // Map to canvas pixel space
+  const canvasX = (e.clientX - rect.left) * scaleX;
+  const canvasY = (e.clientY - rect.top) * scaleY;
+  mouse.x = canvasX;
+  mouse.y = canvasY;
+
+  // Convert to art space and clamp
+  const artX = Math.max(0, Math.min(ART_WIDTH, canvasX - artOriginX));
+  const artY = Math.max(0, Math.min(ART_HEIGHT, canvasY - artOriginY));
 
   // Prevent canvas interactions when success message is visible
   if (successMessageVisible) {
@@ -413,8 +446,8 @@ canvas.addEventListener("mousemove", (e: MouseEvent) => {
   }
 
   if (isDragging) {
-    guess.x = mouse.x;
-    guess.y = mouse.y;
+    guess.x = artX;
+    guess.y = artY;
   }
 });
 
@@ -438,8 +471,11 @@ canvas.addEventListener("mousedown", () => {
   successStartMs = null; // cancel any success animation while dragging
   successMessageVisible = false;
   hasPlayerInteractedInLevel = true;
-  guess.x = mouse.x;
-  guess.y = mouse.y;
+  // Convert last mouse to art space and clamp
+  const artX = Math.max(0, Math.min(ART_WIDTH, mouse.x - artOriginX));
+  const artY = Math.max(0, Math.min(ART_HEIGHT, mouse.y - artOriginY));
+  guess.x = artX;
+  guess.y = artY;
   
   // Hide cursor when dragging
   canvas.style.cursor = 'none';
@@ -483,8 +519,11 @@ canvas.addEventListener("mouseenter", () => {
   // If mouse button is still pressed when entering canvas, resume dragging
   if (isMouseButtonPressed) {
     isDragging = true;
-    guess.x = mouse.x;
-    guess.y = mouse.y;
+    // Convert last mouse to art space and clamp
+    const artX = Math.max(0, Math.min(ART_WIDTH, mouse.x - artOriginX));
+    const artY = Math.max(0, Math.min(ART_HEIGHT, mouse.y - artOriginY));
+    guess.x = artX;
+    guess.y = artY;
     
     // Hide cursor if resuming drag
     canvas.style.cursor = 'none';
