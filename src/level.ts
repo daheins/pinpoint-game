@@ -1,6 +1,6 @@
 // Level-related types and logic for the pinpoint game
 
-import { Application, Sprite, Assets, Container, DisplacementFilter, BlurFilter, NoiseFilter } from "pixi.js";
+import { Application, Sprite, Assets, Container, DisplacementFilter, BlurFilter, NoiseFilter, Graphics } from "pixi.js";
 import { TwistFilter } from '@pixi/filter-twist';
 import { showCurve } from './gameParams_debug';
 import { ScatterPuzzle } from './scatterPuzzle';
@@ -179,10 +179,13 @@ export class LevelRenderer {
   private curveCursorSprite: Sprite | null = null;
   private canvasWidth: number;
   private canvasHeight: number;
+  private gradientContainer: Container;
+  private gradientGraphics: Graphics | null = null;
 
-  constructor(app: Application, imageContainer: Container, canvasWidth: number, canvasHeight: number) {
+  constructor(app: Application, imageContainer: Container, gradientContainer: Container, canvasWidth: number, canvasHeight: number) {
     this.app = app;
     this.imageContainer = imageContainer;
+    this.gradientContainer = gradientContainer;
     this.canvasWidth = canvasWidth;
     this.canvasHeight = canvasHeight;
   }
@@ -531,11 +534,29 @@ export class LevelRenderer {
   updateBackgroundColor(activePercentageGuess: Point, level: Level): void {
     // Set background color if no image
     if (!this.backgroundSprite && !this.fixedImageSprite && this.backgroundSprites.length === 0 && !this.scatterPuzzle) {
+      if (!this.gradientGraphics) {
+        // Create new gradient graphics
+        this.gradientGraphics = new Graphics();
+        this.gradientGraphics.rect(0, 0, this.canvasWidth, this.canvasHeight);
+        this.gradientContainer.addChild(this.gradientGraphics);
+      }
+      
       const dist = LevelManager.distance(activePercentageGuess, level.target);
       const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
       const t = Math.min(dist / maxDist, 1);
       const v = Math.round(255 * (1 - t));
-      this.app.renderer.background.color = (v << 16) | (v << 8) | v; // Convert to hex
+      const color = (v << 16) | (v << 8) | v; // Convert to hex
+      
+      // Clear and redraw with new color
+      this.gradientGraphics.clear();
+      this.gradientGraphics.rect(0, 0, this.canvasWidth, this.canvasHeight);
+      this.gradientGraphics.fill({ color: color });
+    } else {
+      // Clear gradient graphics if there are images
+      if (this.gradientGraphics) {
+        this.gradientContainer.removeChild(this.gradientGraphics);
+        this.gradientGraphics = null;
+      }
     }
   }
 
