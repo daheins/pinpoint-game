@@ -36,6 +36,7 @@ export class Level {
   curveCursor?: string;
   dialogText?: string[];
   dialogCharacterImage?: string;
+  dialogPosition?: string;
   hideCanvas?: boolean;
 
   constructor(levelData: any) {
@@ -56,6 +57,7 @@ export class Level {
     this.imageFilterY = levelData.imageFilterY;
     this.dialogText = levelData.dialogText;
     this.dialogCharacterImage = levelData.dialogCharacterImage;
+    this.dialogPosition = levelData.dialogPosition;
     this.hideCanvas = levelData.hideCanvas;
   }
 

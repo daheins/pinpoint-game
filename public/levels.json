@@ -1,5 +1,14 @@
 {
   "0": {
+    "displayName": "Dialog",
+    "target": { "x": 50, "y": 50 },
+    "targetRadius": 20,
+    "dialogText": ["This is a dialog-only level!", "The canvas is hidden but you can still see the level selector."],
+    "dialogCharacterImage": "char_smile.png",
+    "dialogPosition": "middle",
+    "hideCanvas": true
+  },
+  "0.5": {
     "displayName": "Level 1",
     "dialogText": ["Help me find my art"],
     "dialogCharacterImage": "char_smile.png",
@@ -86,6 +95,7 @@
     "targetRadius": 20,
     "dialogText": ["This is a dialog-only level!", "The canvas is hidden but you can still see the level selector."],
     "dialogCharacterImage": "char_smile.png",
+    "dialogPosition": "middle",
     "hideCanvas": true
   }
 }

@@ -12,12 +12,13 @@ export class DialogManager {
   private isVisible: boolean = false;
   private currentDialogIndex: number = 0;
   private dialogStrings: string[] = [];
+  private onComplete?: () => void;
 
   constructor(uiContainer: Container) {
     this.uiContainer = uiContainer;
   }
 
-  public async showDialog(dialogStrings: string[], characterImagePath?: string): Promise<void> {
+  public async showDialog(dialogStrings: string[], characterImagePath?: string, position?: string, onComplete?: () => void): Promise<void> {
     if (!dialogStrings || dialogStrings.length === 0) {
       return;
     }
@@ -28,9 +29,16 @@ export class DialogManager {
     this.dialogStrings = dialogStrings;
     this.currentDialogIndex = 0;
     this.isVisible = true;
+    this.onComplete = onComplete;
 
     // Create new dialog container
     this.dialogContainer = new Container();
+    
+    // Full-screen transparent overlay to capture clicks anywhere
+    const overlayGraphics = new Graphics();
+    overlayGraphics.rect(0, 0, TABLET_WIDTH, TABLET_HEIGHT);
+    overlayGraphics.fill({ color: 0x000000, alpha: 0.001 });
+    this.dialogContainer.addChild(overlayGraphics);
 
     // Load character image if provided
     if (characterImagePath) {
@@ -94,24 +102,35 @@ export class DialogManager {
     this.dialogText.x = characterWidth + padding;
     this.dialogText.y = padding;
 
-    // Add elements to container in correct draw order (background first, then content on top)
-    this.dialogContainer.addChild(this.backgroundGraphics);
-    this.dialogContainer.addChild(this.dialogText);
+    // Create content container for dialog box
+    const contentContainer = new Container();
+    
+    // Add elements to content container in correct draw order (background first, then content on top)
+    contentContainer.addChild(this.backgroundGraphics);
+    contentContainer.addChild(this.dialogText);
     
     // Add character sprite last so it appears on top
     if (this.characterSprite) {
-      this.dialogContainer.addChild(this.characterSprite);
+      contentContainer.addChild(this.characterSprite);
     }
 
-    // Position dialog container at bottom center of screen
-    this.dialogContainer.x = (TABLET_WIDTH - bgWidth) / 2;
-    this.dialogContainer.y = TABLET_HEIGHT - bgHeight - 20;
+    let dialogX = (TABLET_WIDTH - bgWidth) / 2;
+    let dialogY = TABLET_HEIGHT - bgHeight - 20;
+
+    if (position === 'middle') {
+      dialogX = (TABLET_WIDTH - bgWidth) / 2;
+      dialogY = (TABLET_HEIGHT - bgHeight) / 2;
+    }
+
+    // Position dialog content at target location; keep overlay at 0,0
+    contentContainer.x = dialogX;
+    contentContainer.y = dialogY;
+    this.dialogContainer.addChild(contentContainer);
 
     // Make dialog interactive
     this.dialogContainer.interactive = true;
-    this.dialogContainer.cursor = 'pointer';
-    this.dialogContainer.on('pointerdown', () => {
-      this.hideDialog();
+    this.dialogContainer.on('pointerup', () => {
+      this.nextDialog();
     });
 
     // Add to UI container
@@ -131,6 +150,7 @@ export class DialogManager {
     this.characterSprite = null;
     this.dialogText = null;
     this.backgroundGraphics = null;
+    this.onComplete = undefined;
   }
 
   public isDialogVisible(): boolean {
@@ -144,7 +164,12 @@ export class DialogManager {
         this.dialogText.text = this.dialogStrings[this.currentDialogIndex];
       }
     } else {
+      // Dialog finished - call completion callback if provided before hiding
+      const completionCallback = this.onComplete;
       this.hideDialog();
+      if (completionCallback) {
+        completionCallback();
+      }
     }
   }
 }

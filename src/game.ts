@@ -12,6 +12,7 @@ import { createCurveDistanceDisplay, createCoordinateDisplay, createTargetCircle
 import { DialogManager } from './dialogManager';
 
 import { Application, Container, Graphics, Text, Sprite } from "pixi.js";
+import { showLevelSelector } from './gameParams_debug';
 
 // Function to load all levels from consolidated levels file
 async function loadLevels(): Promise<Level[]> {
@@ -51,8 +52,14 @@ const container = document.getElementById("game-container") as HTMLElement;
 const sizeWarning = document.getElementById("size-warning") as HTMLElement;
 const levelNameDisplay = document.getElementById("level-name") as HTMLElement;
 const levelGrid = document.getElementById("level-grid") as HTMLElement;
+const levelSelector = document.getElementById("level-selector") as HTMLElement;
 container.style.width = `${TABLET_WIDTH}px`;
 container.style.height = `${TABLET_HEIGHT}px`;
+
+// Toggle level selector visibility based on debug flag
+if (levelSelector) {
+  levelSelector.style.display = showLevelSelector ? 'flex' : 'none';
+}
 
 // --- PIXI.js Setup ---
 const app = new Application();
@@ -136,7 +143,19 @@ async function loadLevel(levelIndex: number) {
   
   // Show dialog if level has dialog text
   if (currentLevel.dialogText && currentLevel.dialogText.length > 0) {
-    await dialogManager.showDialog(currentLevel.dialogText, currentLevel.dialogCharacterImage);
+    const isDialogOnly = !!currentLevel.hideCanvas;
+    await dialogManager.showDialog(
+      currentLevel.dialogText, 
+      currentLevel.dialogCharacterImage, 
+      currentLevel.dialogPosition,
+      isDialogOnly ? () => {
+        // Auto-advance to next level for dialog-only levels
+        const nextIndex = levelManager.getCurrentLevelIndex() + 1;
+        if (nextIndex < levelManager.getLevelCount()) {
+          loadLevel(nextIndex);
+        }
+      } : undefined
+    );
   }
   
   // Update active level in selector
@@ -381,6 +400,11 @@ canvas.addEventListener("mousemove", (e: MouseEvent) => {
   mouse.x = (e.clientX - rect.left) * scaleX;
   mouse.y = (e.clientY - rect.top) * scaleY;
 
+  // Prevent canvas interactions when success message is visible
+  if (successMessageVisible) {
+    return;
+  }
+
   if (isDragging) {
     guess.x = mouse.x;
     guess.y = mouse.y;
@@ -388,6 +412,19 @@ canvas.addEventListener("mousemove", (e: MouseEvent) => {
 });
 
 canvas.addEventListener("mousedown", () => {
+  if (dialogManager && dialogManager.isDialogVisible()) {
+    return;
+  }
+  
+  // If success message is visible, advance to next level instead of allowing canvas interaction
+  if (successMessageVisible) {
+    const nextIndex = levelManager.getCurrentLevelIndex() + 1;
+    if (nextIndex < levelManager.getLevelCount()) {
+      loadLevel(nextIndex);
+    }
+    return;
+  }
+  
   // mouse is already mapped to virtual space via mousemove
   isDragging = true;
   isMouseButtonPressed = true;
@@ -401,6 +438,15 @@ canvas.addEventListener("mousedown", () => {
 });
 
 canvas.addEventListener("mouseup", () => {
+  if (dialogManager && dialogManager.isDialogVisible()) {
+    return;
+  }
+  
+  // Prevent canvas interactions when success message is visible
+  if (successMessageVisible) {
+    return;
+  }
+  
   isDragging = false;
   isMouseButtonPressed = false;
   
@@ -416,6 +462,16 @@ canvas.addEventListener("mouseleave", () => {
 });
 
 canvas.addEventListener("mouseenter", () => {
+  if (dialogManager && dialogManager.isDialogVisible()) {
+    // Let the dialog container handle cursor - don't override it
+    return;
+  }
+  
+  // Prevent canvas interactions when success message is visible
+  if (successMessageVisible) {
+    return;
+  }
+  
   // If mouse button is still pressed when entering canvas, resume dragging
   if (isMouseButtonPressed) {
     isDragging = true;
