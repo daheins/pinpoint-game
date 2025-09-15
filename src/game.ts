@@ -207,12 +207,23 @@ function createSuccessText() {
   const text = new Text({
     text: "You found me!",
     style: {
-      fontFamily: 'Arial',
+      fontFamily: 'Arial, sans-serif',
       fontSize: 40,
       fill: 0xADD8E6,
-      align: 'center'
+      align: 'center',
+      fontWeight: '400',
+      stroke: { color: 0x000000, width: 2 },
+      dropShadow: {
+        color: 0x000000,
+        blur: 2,
+        distance: 2,
+        alpha: 0.7
+      }
     }
   });
+  
+  // Configure text rendering for maximum crispness
+  text.resolution = window.devicePixelRatio || 1;
   
   // Set anchor to center for proper centering
   text.anchor.set(0.5, 0.5);
@@ -268,7 +279,9 @@ async function initializeGame() {
     width: TABLET_WIDTH,
     height: TABLET_HEIGHT,
     backgroundAlpha: 0,
-    antialias: true
+    antialias: true,
+    resolution: window.devicePixelRatio || 1,
+    autoDensity: true
   });
   
   // Set up PIXI containers

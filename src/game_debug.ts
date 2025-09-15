@@ -33,12 +33,23 @@ export function createCurveDistanceDisplay(
     const text = new Text({
       text: `Curve Distance: ${distanceText}`,
       style: {
-        fontFamily: 'Arial',
+        fontFamily: 'Arial, sans-serif',
         fontSize: 16,
         fill: 0xFFFFFF,
-        align: 'right'
+        align: 'right',
+        fontWeight: '400',
+        stroke: { color: 0x000000, width: 1 },
+        dropShadow: {
+          color: 0x000000,
+          blur: 1,
+          distance: 1,
+          alpha: 0.5
+        }
       }
     });
+    
+    // Configure text rendering for maximum crispness
+    text.resolution = window.devicePixelRatio || 1;
     
     // Create background rectangle
     const backgroundGraphics = new Graphics();
@@ -86,12 +97,23 @@ export function createCoordinateDisplay(
     const text = new Text({
       text: `(x: ${activePercentageGuess.x.toFixed(1)}, y: ${activePercentageGuess.y.toFixed(1)})`,
       style: {
-        fontFamily: 'Arial',
+        fontFamily: 'Arial, sans-serif',
         fontSize: 16,
         fill: 0xFFFFFF,
-        align: 'right'
+        align: 'right',
+        fontWeight: '400',
+        stroke: { color: 0x000000, width: 1 },
+        dropShadow: {
+          color: 0x000000,
+          blur: 1,
+          distance: 1,
+          alpha: 0.5
+        }
       }
     });
+    
+    // Configure text rendering for maximum crispness
+    text.resolution = window.devicePixelRatio || 1;
     
     // Create background rectangle
     const backgroundGraphics = new Graphics();

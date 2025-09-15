@@ -76,20 +76,33 @@ export class DialogManager {
     this.dialogText = new Text({
       text: dialogStrings[this.currentDialogIndex],
       style: {
-        fontFamily: 'Arial',
+        fontFamily: 'Chubbo',
         fontSize: 16,
         fill: 0xFFFFFF,
         align: 'left',
         wordWrap: true,
-        wordWrapWidth: 300
+        wordWrapWidth: 450,
+        fontWeight: '400',
+        stroke: { color: 0x000000, width: 1 },
+        dropShadow: {
+          color: 0x000000,
+          blur: 1,
+          distance: 1,
+          alpha: 0.5
+        },
+        letterSpacing: 1, // Add space between letters
+        lineHeight: 24 // Add space between lines (50% more than fontSize)
       }
     });
+
+    // Configure text rendering for maximum crispness
+    this.dialogText.resolution = window.devicePixelRatio || 1;
 
     // Create background rectangle
     this.backgroundGraphics = new Graphics();
     const padding = 15;
     const characterWidth = this.characterSprite ? 75 : 0; // 60px + 15px margin
-    const textWidth = Math.max(this.dialogText.width, 300);
+    const textWidth = Math.max(this.dialogText.width, 450); // Increased from 300
     const textHeight = this.dialogText.height;
     const bgWidth = characterWidth + textWidth + (padding * 2);
     const bgHeight = Math.max(textHeight, this.characterSprite ? 60 : 0) + (padding * 2);
@@ -100,7 +113,7 @@ export class DialogManager {
     this.backgroundGraphics.stroke({ width: 2, color: 0xADD8E6, alpha: 0.8 });
     
     this.dialogText.x = characterWidth + padding;
-    this.dialogText.y = padding;
+    this.dialogText.y = 8;
 
     // Create content container for dialog box
     const contentContainer = new Container();
@@ -111,6 +124,9 @@ export class DialogManager {
     
     // Add character sprite last so it appears on top
     if (this.characterSprite) {
+      // Adjust character position for larger dialog box
+      this.characterSprite.x = -80;
+      this.characterSprite.y = -80;
       contentContainer.addChild(this.characterSprite);
     }
 
