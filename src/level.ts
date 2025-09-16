@@ -567,7 +567,9 @@ export class LevelRenderer {
       const dist = LevelManager.distance(activePercentageGuess, level.target);
       const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
       const t = Math.min(dist / maxDist, 1);
-      const v = Math.round(255 * (1 - t));
+      const t_root = Math.sqrt(t);
+      
+      const v = Math.round(255 * (1 - t_root));
       const color = (v << 16) | (v << 8) | v; // Convert to hex
       
       // Clear and redraw with new color
