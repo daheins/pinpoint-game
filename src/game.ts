@@ -591,12 +591,8 @@ canvas.addEventListener("mousedown", () => {
     return;
   }
   
-  // If success message is visible, advance to next level instead of allowing canvas interaction
+  // Prevent canvas interactions when success message is visible, but don't advance yet
   if (successMessageVisible) {
-    const nextIndex = levelManager.getCurrentLevelIndex() + 1;
-    if (nextIndex < levelManager.getLevelCount()) {
-      loadLevel(nextIndex);
-    }
     return;
   }
   
@@ -643,8 +639,12 @@ canvas.addEventListener("mouseup", () => {
     return;
   }
   
-  // Prevent canvas interactions when success message is visible
+  // If success message is visible, advance to next level on mouse up
   if (successMessageVisible) {
+    const nextIndex = levelManager.getCurrentLevelIndex() + 1;
+    if (nextIndex < levelManager.getLevelCount()) {
+      loadLevel(nextIndex);
+    }
     return;
   }
   
