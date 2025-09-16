@@ -84,7 +84,7 @@ let isDragging = false;
 let isMouseButtonPressed = false;
 let successStartMs: number | null = null;
 let successMessageVisible = false;
-let crosshairGraphics: Graphics | null = null;
+let crosshairSprite: Sprite | null = null;
 let curveCursorSprite: Sprite | null = null;
 let successText: Text | null = null;
 let hasPlayerInteractedInLevel = false;
@@ -192,20 +192,50 @@ async function loadLevel(levelIndex: number) {
 
 // --- Helpers ---
 
-function createCrosshair() {
-  if (crosshairGraphics) {
-    uiContainer.removeChild(crosshairGraphics);
+async function initializeCrosshair() {
+  try {
+    const texture = await Assets.load(`${import.meta.env.BASE_URL}images/crosshair.png`);
+    crosshairSprite = new Sprite(texture);
+    
+    // Set size to 25x25 pixels
+    crosshairSprite.width = 25;
+    crosshairSprite.height = 25;
+    
+    // Center the crosshair on the guess position
+    crosshairSprite.anchor.set(0.5, 0.5);
+    crosshairSprite.visible = false; // Start hidden, will be shown when needed
+    
+    uiContainer.addChild(crosshairSprite);
+  } catch (error) {
+    console.error('Failed to load crosshair image:', error);
+    // Fallback to graphics-based crosshair if image fails to load
+    createFallbackCrosshair();
   }
-  
-  crosshairGraphics = new Graphics();
-  crosshairGraphics.setStrokeStyle({ width: 3, color: isDragging ? 0xffffff : 0x000000 });
-  crosshairGraphics.moveTo(guess.x - 12, guess.y - 12);
-  crosshairGraphics.lineTo(guess.x + 12, guess.y + 12);
-  crosshairGraphics.moveTo(guess.x + 12, guess.y - 12);
-  crosshairGraphics.lineTo(guess.x - 12, guess.y + 12);
+}
+
+function createFallbackCrosshair() {
+  const crosshairGraphics = new Graphics();
+  crosshairGraphics.setStrokeStyle({ width: 3, color: 0x000000 });
+  crosshairGraphics.moveTo(-12, -12);
+  crosshairGraphics.lineTo(12, 12);
+  crosshairGraphics.moveTo(12, -12);
+  crosshairGraphics.lineTo(-12, 12);
   crosshairGraphics.stroke();
+  crosshairGraphics.visible = false; // Start hidden
   
   uiContainer.addChild(crosshairGraphics);
+  crosshairSprite = crosshairGraphics as any; // Type compatibility for cleanup
+}
+
+function updateCrosshair() {
+  if (!crosshairSprite) return;
+  
+  // Update position
+  crosshairSprite.x = guess.x;
+  crosshairSprite.y = guess.y;
+  
+  // Update color tint based on dragging state
+  crosshairSprite.tint = isDragging ? 0xffffff : 0x000000;
 }
 
 function createSuccessText(level: Level) {
@@ -328,6 +358,9 @@ async function initializeGame() {
   // Initialize dialog manager
   dialogManager = new DialogManager(dialogContainer);
   
+  // Initialize crosshair
+  await initializeCrosshair();
+  
   // Load levels
   levels = await loadLevels();
   levelManager = new LevelManager(levels);
@@ -367,11 +400,13 @@ function gameLoop() {
 
   // Update crosshair (only if level should show crosshair)
   if (currentLevel.shouldShowCrosshair()) {
-    createCrosshair();
-  } else if (crosshairGraphics) {
-    // Remove crosshair if it exists but shouldn't be shown
-    uiContainer.removeChild(crosshairGraphics);
-    crosshairGraphics = null;
+    if (crosshairSprite) {
+      crosshairSprite.visible = true;
+      updateCrosshair();
+    }
+  } else if (crosshairSprite) {
+    // Hide crosshair if it exists but shouldn't be shown
+    crosshairSprite.visible = false;
   }
   
   // Update curve cursor (only if level has curve cursor)
