@@ -84,10 +84,17 @@ let isDragging = false;
 let isMouseButtonPressed = false;
 let successStartMs: number | null = null;
 let successMessageVisible = false;
+let crosshairContainer: Container | null = null;
 let crosshairSprite: Sprite | null = null;
 let curveCursorSprite: Sprite | null = null;
 let successText: Text | null = null;
 let hasPlayerInteractedInLevel = false;
+let lastInteractionTime = 0;
+let isJiggling = false;
+let jiggleStartTime = 0;
+const JIGGLE_INTERVAL = 3000; // 3 seconds
+const JIGGLE_DURATION = 500; // 0.5 seconds
+const JIGGLE_AMPLITUDE = 8; // pixels (vertical only)
 const artOriginX = (TABLET_WIDTH - ART_WIDTH) / 2;
 const artOriginY = (TABLET_HEIGHT - ART_HEIGHT) / 2;
 
@@ -148,6 +155,8 @@ async function loadLevel(levelIndex: number) {
   successStartMs = null;
   successMessageVisible = false;
   hasPlayerInteractedInLevel = false;
+  lastInteractionTime = performance.now(); // Initialize idle timer for new level
+  isJiggling = false; // Reset jiggle state when loading new level
   
   // Update jigsaw puzzle with initial guess position if this is a jigsaw level
   if (currentLevel.jigsawImage && levelRenderer) {
@@ -201,11 +210,17 @@ async function initializeCrosshair() {
     crosshairSprite.width = 25;
     crosshairSprite.height = 25;
     
-    // Center the crosshair on the guess position
+    // Center the crosshair sprite within its container
     crosshairSprite.anchor.set(0.5, 0.5);
-    crosshairSprite.visible = false; // Start hidden, will be shown when needed
+    crosshairSprite.x = 0; // Centered in container
+    crosshairSprite.y = 0; // Centered in container
     
-    uiContainer.addChild(crosshairSprite);
+    // Create container for crosshair
+    crosshairContainer = new Container();
+    crosshairContainer.visible = false; // Start hidden, will be shown when needed
+    crosshairContainer.addChild(crosshairSprite);
+    
+    uiContainer.addChild(crosshairContainer);
   } catch (error) {
     console.error('Failed to load crosshair image:', error);
     // Fallback to graphics-based crosshair if image fails to load
@@ -221,21 +236,61 @@ function createFallbackCrosshair() {
   crosshairGraphics.moveTo(12, -12);
   crosshairGraphics.lineTo(-12, 12);
   crosshairGraphics.stroke();
-  crosshairGraphics.visible = false; // Start hidden
   
-  uiContainer.addChild(crosshairGraphics);
+  // Position graphics at center of container
+  crosshairGraphics.x = 0;
+  crosshairGraphics.y = 0;
+  
+  // Create container for crosshair
+  crosshairContainer = new Container();
+  crosshairContainer.visible = false; // Start hidden
+  crosshairContainer.addChild(crosshairGraphics);
+  
+  uiContainer.addChild(crosshairContainer);
   crosshairSprite = crosshairGraphics as any; // Type compatibility for cleanup
 }
 
 function updateCrosshair() {
-  if (!crosshairSprite) return;
+  if (!crosshairContainer || !crosshairSprite) return;
   
-  // Update position
-  crosshairSprite.x = guess.x;
-  crosshairSprite.y = guess.y;
+  // Update container position to match guess position
+  crosshairContainer.x = guess.x;
+  crosshairContainer.y = guess.y;
   
   // Update color tint based on dragging state
   crosshairSprite.tint = isDragging ? 0xffffff : 0x000000;
+}
+
+function startJiggleAnimation() {
+  if (!crosshairSprite || isJiggling) return;
+  
+  isJiggling = true;
+  jiggleStartTime = performance.now();
+}
+
+function updateJiggleAnimation() {
+  if (!crosshairSprite || !isJiggling) return;
+  
+  const currentTime = performance.now();
+  const elapsed = currentTime - jiggleStartTime;
+  
+  if (elapsed >= JIGGLE_DURATION) {
+    // Jiggle animation finished - reset sprite to center of container
+    isJiggling = false;
+    crosshairSprite.x = 0;
+    crosshairSprite.y = 0;
+    return;
+  }
+  
+  // Calculate vertical jiggle offset using a sine wave for smooth oscillation
+  const progress = elapsed / JIGGLE_DURATION;
+  const frequency = 5; // How many oscillations during the jiggle
+  const jiggleY = Math.sin(progress * Math.PI * frequency) * JIGGLE_AMPLITUDE * (1 - progress);
+  
+  // Move sprite within container (container stays at guess position)
+  // Only vertical movement, no horizontal
+  crosshairSprite.x = 0;
+  crosshairSprite.y = jiggleY;
 }
 
 function createSuccessText(level: Level) {
@@ -400,13 +455,34 @@ function gameLoop() {
 
   // Update crosshair (only if level should show crosshair)
   if (currentLevel.shouldShowCrosshair()) {
-    if (crosshairSprite) {
-      crosshairSprite.visible = true;
+    if (crosshairContainer) {
+      crosshairContainer.visible = true;
       updateCrosshair();
+      updateJiggleAnimation();
+      
+      // Check if we should start a jiggle animation
+      if (!isDragging && !isJiggling && !successMessageVisible) {
+        const target = {
+          x: (currentLevel.target.x / 100) * ART_WIDTH,
+          y: (currentLevel.target.y / 100) * ART_HEIGHT
+        };
+        const isInCorrectPosition = levelManager.isGuessSuccessful(guess, target, currentLevel.targetRadius);
+        
+        if (!isInCorrectPosition) {
+          const currentTime = performance.now();
+          if (currentTime - lastInteractionTime >= JIGGLE_INTERVAL) {
+            startJiggleAnimation();
+            lastInteractionTime = currentTime; // Reset timer after jiggle starts
+          }
+        } else {
+          // If in correct position, reset the timer to prevent jiggling
+          lastInteractionTime = performance.now();
+        }
+      }
     }
-  } else if (crosshairSprite) {
+  } else if (crosshairContainer) {
     // Hide crosshair if it exists but shouldn't be shown
-    crosshairSprite.visible = false;
+    crosshairContainer.visible = false;
   }
   
   // Update curve cursor (only if level has curve cursor)
@@ -551,6 +627,8 @@ canvas.addEventListener("mousedown", () => {
   successStartMs = null; // cancel any success animation while dragging
   successMessageVisible = false;
   hasPlayerInteractedInLevel = true;
+  lastInteractionTime = performance.now(); // Reset idle timer when starting to drag
+  isJiggling = false; // Stop any current jiggle when dragging starts
   
   // Set guess to mouse position
   guess.x = artX;
@@ -572,6 +650,7 @@ canvas.addEventListener("mouseup", () => {
   
   isDragging = false;
   isMouseButtonPressed = false;
+  lastInteractionTime = performance.now(); // Reset idle timer when releasing mouse
   
   // Show cursor again when not dragging
   canvas.style.cursor = 'default';
@@ -632,6 +711,7 @@ canvas.addEventListener("mouseenter", () => {
 document.addEventListener("mouseup", () => {
   isMouseButtonPressed = false;
   isDragging = false;
+  lastInteractionTime = performance.now(); // Reset idle timer when releasing mouse anywhere
   
   // Show cursor again when mouse is released anywhere
   canvas.style.cursor = 'default';

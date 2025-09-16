@@ -1,7 +1,7 @@
 {
   "1": {
     "displayName": "Intro 1",
-    "dialogText": ["Hello! I'm hoping you can help me.", "For years I have been an avid art collector, but something strange has started happening to my collection."],
+    "dialogText": ["Hello! I'm hoping you can help me.", "For years I've been an avid art collector, but recently something strange has started happening to my collection."],
     "dialogCharacterImage": "char_smile.png",
     "dialogPosition": "middle",
     "hideCanvas": true
@@ -24,6 +24,8 @@
   },
   "21": {
     "displayName": "Level 1",
+    "dialogText": ["Oh. I'm not sure what's happening here. Is this a device error? Fix it for me!"],
+    "dialogCharacterImage": "char_smile.png",
     "target": { "x": 7.8, "y": 37.5 },
     "targetRadius": 20
   },
