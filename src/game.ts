@@ -258,7 +258,7 @@ function updateCrosshair() {
   crosshairContainer.y = guess.y;
   
   // Update color tint based on dragging state
-  crosshairSprite.tint = isDragging ? 0xffffff : 0x000000;
+  crosshairSprite.tint = isDragging ? 0xFFFFFF : 0x000000;
 }
 
 function startJiggleAnimation() {
