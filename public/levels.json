@@ -1,19 +1,19 @@
 {
   "1": {
-    "displayName": "Intro 1",
+    "displayName": "Game",
     "dialogText": ["Hello! I'm hoping you can help me.", "For years I've been an avid art collector, but recently something strange has started happening to my collection."],
     "dialogCharacterImage": "char_smile.png",
     "dialogPosition": "middle",
     "hideCanvas": true
   },
   "2": {
-    "displayName": "Intro 2",
-    "dialogText": ["All of my art is stored here on this tablet. Here you go."],
+    "displayName": "Game",
+    "dialogText": ["Here, take this tablet. All of my art is stored on it."],
     "dialogCharacterImage": "char_smile.png",
     "hideCrosshair": true
   },
   "3": {
-    "displayName": "Level 1",
+    "displayName": "Game",
     "dialogText": ["Look, see how this art is falling apart?! Can you help me get it back together?"],
     "dialogCharacterImage": "char_sad.png",
     "dialogPosition": "bottom",
@@ -22,33 +22,26 @@
     "jigsawImage": "wallhaven-rd3pjw.jpg",
     "jigsawMovement": 0
   },
-  "21": {
-    "displayName": "Level 1",
+  "4": {
+    "displayName": "Game",
     "dialogText": ["Oh. I'm not sure what's happening here. Is this a device error? Fix it for me!"],
     "dialogCharacterImage": "char_smile.png",
-    "target": { "x": 7.8, "y": 37.5 },
+    "dialogPosition": "bottom",
+    "target": { "x": 47.8, "y": 7.5 },
     "targetRadius": 20
   },
-  "22": {
-    "displayName": "Level 2",
-    "target": { "x": 7.8, "y": 37.5 },
+  "5": {
+    "displayName": "Game",
+    "target": { "x": 77.8, "y": 67.5 },
     "targetRadius": 20,
     "image": "fuji.png",
-    "spiralEffect": {
-      "centerX": 0.5,
-      "centerY": 0.5,
-      "strength": 0.2,
-      "rotation": 0,
-      "spiralTightness": 1.5
-    }
+    "imageFilterDist": "warp"
   },
-  "23": {
-    "displayName": "Level 3",
+  "6": {
+    "displayName": "Game",
     "target": { "x": 35.6, "y": 29.25 },
     "targetRadius": 20,
-    "image": "genshinFireworks.webp",
-    "imageFilterX": "noise",
-    "imageFilterY": "warp"
+    "image": "genshinFireworks.webp"
   },
   "24": {
     "displayName": "Level 4",

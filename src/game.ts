@@ -382,8 +382,13 @@ async function initializeGame() {
     backgroundAlpha: 0,
     antialias: true,
     resolution: window.devicePixelRatio || 1,
-    autoDensity: true
+    autoDensity: true,
+    // Force WebGL to ensure compatibility with pixi-filters (WebGPU support varies)
+    preference: 'webgl'
   });
+  
+  // Debug renderer choice
+  console.log('PIXI renderer type:', (app.renderer as any).type);
   
   // Set up PIXI containers
   app.stage.addChild(gameContainer);

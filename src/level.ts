@@ -1,13 +1,11 @@
 // Level-related types and logic for the pinpoint game
 
 import { Application, Sprite, Assets, Container, DisplacementFilter, BlurFilter, NoiseFilter, Graphics } from "pixi.js";
-import { TwistFilter } from '@pixi/filter-twist';
 import { showCurve } from './gameParams_debug';
 import { ART_WIDTH, ART_HEIGHT, TABLET_WIDTH, TABLET_HEIGHT } from './gameParams';
 import { ScatterPuzzle } from './scatterPuzzle';
 
-// Debug: Check if TwistFilter is properly imported
-console.log('TwistFilter import check:', TwistFilter);
+//
 
 export interface Point {
   x: number;
@@ -199,6 +197,7 @@ export class LevelRenderer {
   private canvasHeight: number;
   private gradientContainer: Container;
   private gradientGraphics: Graphics | null = null;
+  
 
   constructor(app: Application, imageContainer: Container, gradientContainer: Container, canvasWidth: number, canvasHeight: number) {
     this.app = app;
@@ -277,6 +276,7 @@ export class LevelRenderer {
     // Clear previous filters
     this.blurFilter = null;
     this.noiseFilter = null;
+    
     
     // Load background image if level has one
     if (level.image) {
