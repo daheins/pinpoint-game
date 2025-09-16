@@ -76,7 +76,7 @@ export class DialogManager {
     this.dialogText = new Text({
       text: dialogStrings[this.currentDialogIndex],
       style: {
-        fontFamily: 'Chubbo',
+        fontFamily: 'Chubbo, sans-serif',
         fontSize: 16,
         fill: 0xFFFFFF,
         align: 'left',

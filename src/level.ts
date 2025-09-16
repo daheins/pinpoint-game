@@ -72,6 +72,14 @@ export class Level {
 
     return !this.jigsawImage && !this.curveCursor;
   }
+
+  isArtLevel(): boolean {
+    if (!!this.jigsawImage) return true;
+
+    if (!!this.image) return true;
+
+    return false;
+  }
 }
 
 // Level management utilities

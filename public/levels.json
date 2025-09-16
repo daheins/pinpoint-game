@@ -10,13 +10,13 @@
     "displayName": "Intro 2",
     "dialogText": ["All of my art is stored here on this tablet. Here you go."],
     "dialogCharacterImage": "char_smile.png",
-    "dialogPosition": "middle",
     "hideCrosshair": true
   },
   "3": {
     "displayName": "Level 1",
     "dialogText": ["Look, see how this art is falling apart?! Can you help me get it back together?"],
-    "dialogCharacterImage": "char_smile.png",
+    "dialogCharacterImage": "char_sad.png",
+    "dialogPosition": "bottom",
     "target": { "x": 7.8, "y": 37.5 },
     "targetRadius": 8,
     "jigsawImage": "wallhaven-rd3pjw.jpg",

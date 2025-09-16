@@ -208,15 +208,17 @@ function createCrosshair() {
   uiContainer.addChild(crosshairGraphics);
 }
 
-function createSuccessText() {
+function createSuccessText(level: Level) {
   if (successText) {
     uiContainer.removeChild(successText);
   }
   
+  const successString = level.isArtLevel() ? "Art recovered!" : "Complete!"
+
   const text = new Text({
-    text: "You found me!",
+    text: successString,
     style: {
-      fontFamily: 'Arial, sans-serif',
+      fontFamily: 'Chubbo, sans-serif, bold',
       fontSize: 40,
       fill: 0xADD8E6,
       align: 'center',
@@ -439,7 +441,7 @@ function gameLoop() {
 
   // Show success text
   if (successMessageVisible && !successText) {
-    createSuccessText();
+    createSuccessText(currentLevel);
   } else if (!successMessageVisible && successText) {
     uiContainer.removeChild(successText);
     successText = null;
