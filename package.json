@@ -15,6 +15,8 @@
     "vite": "^7.1.2"
   },
   "dependencies": {
-    "pixi.js": "^8.13.1"
+    "@pixi/filter-pixelate": "^5.1.1",
+    "@pixi/filter-twist": "^5.1.1",
+    "pixi.js": "^7.4.2"
   }
 }

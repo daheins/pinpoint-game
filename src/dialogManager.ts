@@ -36,8 +36,9 @@ export class DialogManager {
     
     // Full-screen transparent overlay to capture clicks anywhere
     const overlayGraphics = new Graphics();
-    overlayGraphics.rect(0, 0, TABLET_WIDTH, TABLET_HEIGHT);
-    overlayGraphics.fill({ color: 0x000000, alpha: 0.001 });
+    overlayGraphics.beginFill(0x000000, 0.001);
+    overlayGraphics.drawRect(0, 0, TABLET_WIDTH, TABLET_HEIGHT);
+    overlayGraphics.endFill();
     this.dialogContainer.addChild(overlayGraphics);
 
     // Load character image if provided
@@ -45,9 +46,10 @@ export class DialogManager {
       try {
         const texture = await Assets.load(`${import.meta.env.BASE_URL}character/${characterImagePath}`);
         
-        // Advanced texture quality options
-        texture.source.scaleMode = 'nearest';
-        texture.updateUvs();
+        // Advanced texture quality options (v7 API)
+        if (texture.baseTexture) {
+          texture.baseTexture.scaleMode = 0; // NEAREST scaling
+        }
         
         // Try different approaches for better quality
         this.characterSprite = new Sprite(texture);
@@ -73,26 +75,23 @@ export class DialogManager {
     }
 
     // Create dialog text
-    this.dialogText = new Text({
-      text: dialogStrings[this.currentDialogIndex],
-      style: {
-        fontFamily: 'Chubbo, sans-serif',
-        fontSize: 16,
-        fill: 0xFFFFFF,
-        align: 'left',
-        wordWrap: true,
-        wordWrapWidth: 450,
-        fontWeight: '400',
-        stroke: { color: 0x000000, width: 1 },
-        dropShadow: {
-          color: 0x000000,
-          blur: 1,
-          distance: 1,
-          alpha: 0.5
-        },
-        letterSpacing: 1, // Add space between letters
-        lineHeight: 24 // Add space between lines (50% more than fontSize)
-      }
+    this.dialogText = new Text(dialogStrings[this.currentDialogIndex], {
+      fontFamily: 'Chubbo, sans-serif',
+      fontSize: 16,
+      fill: 0xFFFFFF,
+      align: 'left',
+      wordWrap: true,
+      wordWrapWidth: 450,
+      fontWeight: '400',
+      stroke: 0x000000,
+      strokeThickness: 1,
+      dropShadow: true,
+      dropShadowColor: 0x000000,
+      dropShadowBlur: 1,
+      dropShadowDistance: 1,
+      dropShadowAlpha: 0.5,
+      letterSpacing: 1, // Add space between letters
+      lineHeight: 24 // Add space between lines (50% more than fontSize)
     });
 
     // Configure text rendering for maximum crispness
@@ -108,9 +107,10 @@ export class DialogManager {
     const bgHeight = Math.max(textHeight, this.characterSprite ? 60 : 0) + (padding * 2);
 
     // Draw background with rounded corners
-    this.backgroundGraphics.roundRect(0, 0, bgWidth, bgHeight, 10);
-    this.backgroundGraphics.fill({ color: 0x000000, alpha: 0.9 });
-    this.backgroundGraphics.stroke({ width: 2, color: 0xADD8E6, alpha: 0.8 });
+    this.backgroundGraphics.beginFill(0x000000, 0.9);
+    this.backgroundGraphics.lineStyle(2, 0xADD8E6, 0.8);
+    this.backgroundGraphics.drawRoundedRect(0, 0, bgWidth, bgHeight, 10);
+    this.backgroundGraphics.endFill();
     
     this.dialogText.x = characterWidth + padding;
     this.dialogText.y = 8;
@@ -143,8 +143,8 @@ export class DialogManager {
     contentContainer.y = dialogY;
     this.dialogContainer.addChild(contentContainer);
 
-    // Make dialog interactive
-    this.dialogContainer.interactive = true;
+    // Make dialog interactive (v7 API)
+    this.dialogContainer.eventMode = 'static';
     this.dialogContainer.on('pointerup', () => {
       this.nextDialog();
     });

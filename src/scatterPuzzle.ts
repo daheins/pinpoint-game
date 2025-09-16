@@ -72,7 +72,7 @@ export class ScatterPuzzle {
         const originalPieceW = imageWidth / this.jigsawGridSize;
         const originalPieceH = imageHeight / this.jigsawGridSize;
         const frame = new Rectangle(col * originalPieceW, row * originalPieceH, originalPieceW, originalPieceH);
-        const texture = new Texture({ source: this.image.source, frame });
+        const texture = new Texture(this.image.baseTexture, frame);
 
         const sprite = new Sprite(texture);
         // Scale the sprite to match the scaled image
@@ -114,8 +114,8 @@ export class ScatterPuzzle {
           
           // Create a black border for the target piece
           const border = new Graphics();
-          border.rect(0, 0, pieceW, pieceH);
-          border.stroke({ width: 4, color: 0x000000 });
+          border.lineStyle(4, 0x000000);
+          border.drawRect(0, 0, pieceW, pieceH);
           border.x = pieceLeft;
           border.y = pieceTop;
           

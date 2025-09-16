@@ -62,7 +62,7 @@ if (levelSelector) {
 }
 
 // --- PIXI.js Setup ---
-const app = new Application();
+let app: Application;
 
 const gameContainer = new Container();
 const artContainer = new Container();
@@ -235,12 +235,11 @@ async function initializeCrosshair() {
 
 function createFallbackCrosshair() {
   const crosshairGraphics = new Graphics();
-  crosshairGraphics.setStrokeStyle({ width: 3, color: 0x000000 });
+  crosshairGraphics.lineStyle(3, 0x000000);
   crosshairGraphics.moveTo(-12, -12);
   crosshairGraphics.lineTo(12, 12);
   crosshairGraphics.moveTo(12, -12);
   crosshairGraphics.lineTo(-12, 12);
-  crosshairGraphics.stroke();
   
   // Position graphics at center of container
   crosshairGraphics.x = 0;
@@ -305,22 +304,19 @@ function createSuccessText(level: Level) {
   
   const successString = level.isArtLevel() ? "Art recovered!" : "Complete!"
 
-  const text = new Text({
-    text: successString,
-    style: {
-      fontFamily: 'Chubbo, sans-serif, bold',
-      fontSize: 40,
-      fill: 0xADD8E6,
-      align: 'center',
-      fontWeight: '400',
-      stroke: { color: 0x000000, width: 2 },
-      dropShadow: {
-        color: 0x000000,
-        blur: 2,
-        distance: 2,
-        alpha: 0.7
-      }
-    }
+  const text = new Text(successString, {
+    fontFamily: 'Chubbo, sans-serif, bold',
+    fontSize: 40,
+    fill: 0xADD8E6,
+    align: 'center',
+    fontWeight: '400',
+    stroke: 0x000000,
+    strokeThickness: 2,
+    dropShadow: true,
+    dropShadowColor: 0x000000,
+    dropShadowBlur: 2,
+    dropShadowDistance: 2,
+    dropShadowAlpha: 0.7
   });
   
   // Configure text rendering for maximum crispness
@@ -335,9 +331,10 @@ function createSuccessText(level: Level) {
   const bgWidth = text.width + (padding * 2);
   const bgHeight = text.height + (padding * 2);
   
-  backgroundGraphics.rect(-bgWidth / 2, -bgHeight / 2, bgWidth, bgHeight);
-  backgroundGraphics.fill({ color: 0x000000, alpha: 0.7 });
-  backgroundGraphics.stroke({ width: 2, color: 0xADD8E6, alpha: 0.8 });
+  backgroundGraphics.beginFill(0x000000, 0.7);
+  backgroundGraphics.lineStyle(2, 0xADD8E6, 0.8);
+  backgroundGraphics.drawRect(-bgWidth / 2, -bgHeight / 2, bgWidth, bgHeight);
+  backgroundGraphics.endFill();
   
   // Add background to text container
   const textContainer = new Container();
@@ -374,21 +371,17 @@ resizeCanvas();
 
 // Initialize the game
 async function initializeGame() {
-  // Initialize PIXI.js
-  await app.init({
-    canvas: canvas,
+  // Initialize PIXI.js (v7 constructor style - synchronous)
+  app = new Application({
+    view: canvas,
     width: TABLET_WIDTH,
     height: TABLET_HEIGHT,
     backgroundAlpha: 0,
     antialias: true,
     resolution: window.devicePixelRatio || 1,
     autoDensity: true,
-    // Force WebGL to ensure compatibility with pixi-filters (WebGPU support varies)
-    preference: 'webgl'
+    forceCanvas: false // Use WebGL for filter compatibility
   });
-  
-  // Debug renderer choice
-  console.log('PIXI renderer type:', (app.renderer as any).type);
   
   // Set up PIXI containers
   app.stage.addChild(gameContainer);
@@ -542,8 +535,8 @@ function gameLoop() {
         const alpha = 1 - t;
         
         const pingGraphics = new Graphics();
-        pingGraphics.circle(guess.x, guess.y, radius);
-        pingGraphics.stroke({ width: 4 * (1 - t) + 1, color: 0xADD8E6, alpha: alpha });
+        pingGraphics.lineStyle(4 * (1 - t) + 1, 0xADD8E6, alpha);
+        pingGraphics.drawCircle(guess.x, guess.y, radius);
         uiContainer.addChild(pingGraphics);
         
         // Remove ping after animation

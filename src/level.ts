@@ -1,6 +1,8 @@
 // Level-related types and logic for the pinpoint game
 
 import { Application, Sprite, Assets, Container, DisplacementFilter, BlurFilter, NoiseFilter, Graphics } from "pixi.js";
+import { PixelateFilter } from '@pixi/filter-pixelate';
+import { TwistFilter } from '@pixi/filter-twist';
 import { showCurve } from './gameParams_debug';
 import { ART_WIDTH, ART_HEIGHT, TABLET_WIDTH, TABLET_HEIGHT } from './gameParams';
 import { ScatterPuzzle } from './scatterPuzzle';
@@ -189,6 +191,8 @@ export class LevelRenderer {
   private displacementSprite: Sprite | null = null;
   private blurFilter: BlurFilter | null = null;
   private noiseFilter: NoiseFilter | null = null;
+  private pixelateFilter: PixelateFilter | null = null;
+  private twistFilter: TwistFilter | null = null;
   private scatterPuzzle: ScatterPuzzle | null = null;
   private curveImage: HTMLImageElement | null = null;
   private curveDisplaySprite: Sprite | null = null;
@@ -276,6 +280,8 @@ export class LevelRenderer {
     // Clear previous filters
     this.blurFilter = null;
     this.noiseFilter = null;
+    this.pixelateFilter = null;
+    this.twistFilter = null;
     
     
     // Load background image if level has one
@@ -291,22 +297,27 @@ export class LevelRenderer {
         this.scaleSpriteToFit(this.displacementSprite);
         
         // Create displacement filter
-        this.displacementFilter = new DisplacementFilter({
-          sprite: this.displacementSprite,
-          scale: 0
-        });
+        this.displacementFilter = new DisplacementFilter(this.displacementSprite);
+        this.displacementFilter.scale.x = 0;
+        this.displacementFilter.scale.y = 0;
         
         // Create blur filter for blur effects
-        this.blurFilter = new BlurFilter({
-          strength: 0, // Will be updated dynamically
-          quality: 10
-        });
+        this.blurFilter = new BlurFilter();
+        this.blurFilter.blur = 0; // Will be updated dynamically
         
         // Create noise filter for noise effects
-        this.noiseFilter = new NoiseFilter({
-          noise: 0, // Will be updated dynamically
-          seed: Math.random() // Random seed for varied noise patterns
-        });
+        this.noiseFilter = new NoiseFilter();
+        this.noiseFilter.noise = 0; // Will be updated dynamically
+        this.noiseFilter.seed = Math.random(); // Random seed for varied noise patterns
+        
+        // Create pixelate filter for retro pixel effects
+        this.pixelateFilter = new PixelateFilter(1); // Will be updated dynamically
+        
+        // Create twist filter for spiral/swirl effects
+        this.twistFilter = new TwistFilter();
+        // Set default values - center will be updated dynamically
+        this.twistFilter.angle = 0;
+        this.twistFilter.radius = 100;
         
         // Apply filters to sprite based on level configuration
         const filters: any[] = [];
@@ -321,6 +332,17 @@ export class LevelRenderer {
         
         if (level.imageFilterDist === 'noise' || level.imageFilterX === 'noise' || level.imageFilterY === 'noise') {
           filters.push(this.noiseFilter);
+        }
+        
+        if (level.imageFilterDist === 'pixel' || level.imageFilterX === 'pixel' || level.imageFilterY === 'pixel') {
+          filters.push(this.pixelateFilter);
+        }
+        
+        if (level.imageFilterDist === 'twist' || level.imageFilterX === 'twist' || level.imageFilterY === 'twist') {
+          filters.push(this.twistFilter);
+          // Set twist center to ART space center (same as cursor center)
+          this.twistFilter.offset.x = ART_WIDTH / 2;
+          this.twistFilter.offset.y = ART_HEIGHT / 2;
         }
         
         this.backgroundSprite.filters = filters;
@@ -431,6 +453,8 @@ export class LevelRenderer {
       this.displacementSprite = null;
       this.blurFilter = null;
       this.noiseFilter = null;
+      this.pixelateFilter = null;
+      this.twistFilter = null;
     }
   }
 
@@ -459,13 +483,27 @@ export class LevelRenderer {
     if (level.imageFilterDist === 'blur' && this.blurFilter) {
       // Scale blur based on distance (farther = more blur)
       const blurStrength = distance * 0.1; // Linear scaling
-      this.blurFilter.strength = blurStrength;
+      this.blurFilter.blur = blurStrength;
     }
     
     if (level.imageFilterDist === 'noise' && this.noiseFilter) {
       // Scale noise based on distance (farther = more noise)
       const noiseStrength = distance * 0.01; // Linear scaling
       this.noiseFilter.noise = noiseStrength;
+    }
+    
+    if (level.imageFilterDist === 'pixel' && this.pixelateFilter) {
+      // Scale pixelation based on distance (farther = more pixelated)
+      const pixelSize = Math.max(1, distance * 0.2); // Linear scaling
+      this.pixelateFilter.size = pixelSize;
+    }
+    
+    if (level.imageFilterDist === 'twist' && this.twistFilter) {
+      // Scale twist based on distance (farther = more twisted)
+      const twistAngle = distance * 0.2; // More pronounced twist
+      const twistRadius = Math.pow(distance, 1.7); // Larger radius range
+      this.twistFilter.angle = twistAngle;
+      this.twistFilter.radius = twistRadius;
     }
   }
 
@@ -490,13 +528,27 @@ export class LevelRenderer {
     if (level.imageFilterX === 'blur' && this.blurFilter) {
       // Scale blur based on X difference
       const blurStrength = Math.abs(xDiff) * 0.1; // Linear scaling
-      this.blurFilter.strength = blurStrength;
+      this.blurFilter.blur = blurStrength;
     }
     
     if (level.imageFilterX === 'noise' && this.noiseFilter) {
       // Scale noise based on X difference
       const noiseStrength = Math.abs(xDiff) * 0.06; // Linear scaling
       this.noiseFilter.noise = noiseStrength;
+    }
+    
+    if (level.imageFilterX === 'pixel' && this.pixelateFilter) {
+      // Scale pixelation based on X difference
+      const pixelSize = Math.max(1, Math.abs(xDiff) * 0.2); // Linear scaling
+      this.pixelateFilter.size = pixelSize;
+    }
+    
+    if (level.imageFilterX === 'twist' && this.twistFilter) {
+      // Scale twist based on X difference
+      const twistAngle = Math.abs(xDiff) * 0.2; // More pronounced twist
+      const twistRadius = Math.max(50, Math.min(300, Math.abs(xDiff) * 3)); // Larger radius range
+      this.twistFilter.angle = twistAngle;
+      this.twistFilter.radius = twistRadius;
     }
   }
 
@@ -521,13 +573,27 @@ export class LevelRenderer {
     if (level.imageFilterY === 'blur' && this.blurFilter) {
       // Scale blur based on Y difference
       const blurStrength = Math.abs(yDiff) * 0.1; // Linear scaling
-      this.blurFilter.strength = blurStrength;
+      this.blurFilter.blur = blurStrength;
     }
     
     if (level.imageFilterY === 'noise' && this.noiseFilter) {
       // Scale noise based on Y difference
       const noiseStrength = Math.abs(yDiff) * 0.01; // Linear scaling
       this.noiseFilter.noise = noiseStrength;
+    }
+    
+    if (level.imageFilterY === 'pixel' && this.pixelateFilter) {
+      // Scale pixelation based on Y difference
+      const pixelSize = Math.max(1, Math.abs(yDiff) * 0.2); // Linear scaling
+      this.pixelateFilter.size = pixelSize;
+    }
+    
+    if (level.imageFilterY === 'twist' && this.twistFilter) {
+      // Scale twist based on Y difference
+      const twistAngle = Math.abs(yDiff) * 0.2; // More pronounced twist
+      const twistRadius = Math.max(50, Math.min(300, Math.abs(yDiff) * 3)); // Larger radius range
+      this.twistFilter.angle = twistAngle;
+      this.twistFilter.radius = twistRadius;
     }
   }
 
@@ -560,7 +626,6 @@ export class LevelRenderer {
         const artOriginY = (TABLET_HEIGHT - ART_HEIGHT) / 2;
         this.gradientGraphics.x = artOriginX;
         this.gradientGraphics.y = artOriginY;
-        this.gradientGraphics.rect(0, 0, this.canvasWidth, this.canvasHeight);
         this.gradientContainer.addChild(this.gradientGraphics);
       }
       
@@ -574,8 +639,9 @@ export class LevelRenderer {
       
       // Clear and redraw with new color
       this.gradientGraphics.clear();
-      this.gradientGraphics.rect(0, 0, this.canvasWidth, this.canvasHeight);
-      this.gradientGraphics.fill({ color: color });
+      this.gradientGraphics.beginFill(color);
+      this.gradientGraphics.drawRect(0, 0, this.canvasWidth, this.canvasHeight);
+      this.gradientGraphics.endFill();
     } else {
       // Clear gradient graphics if there are images
       if (this.gradientGraphics) {
