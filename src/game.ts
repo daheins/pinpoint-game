@@ -117,6 +117,11 @@ function createLevelSelector() {
 }
 
 async function loadLevel(levelIndex: number) {
+  // Clear any existing dialog when loading a new level
+  if (dialogManager) {
+    dialogManager.hideDialog();
+  }
+  
   currentLevel = levelManager.loadLevel(levelIndex);
   levelNameDisplay.textContent = currentLevel.displayName;
   
