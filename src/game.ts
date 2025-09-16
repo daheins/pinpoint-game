@@ -3,7 +3,7 @@ import type { Point } from './level';
 import { Level, LevelManager, LevelRenderer } from './level';
 
 // Import game parameters
-import { TABLET_WIDTH, TABLET_HEIGHT, ART_WIDTH, ART_HEIGHT } from './gameParams';
+import { TABLET_WIDTH, TABLET_HEIGHT, ART_WIDTH, ART_HEIGHT, PICKUP_RADIUS } from './gameParams';
 
 // Import debug utilities
 import { createCurveDistanceDisplay, createCoordinateDisplay, createTargetCircle } from './game_debug';
@@ -148,6 +148,15 @@ async function loadLevel(levelIndex: number) {
   successStartMs = null;
   successMessageVisible = false;
   hasPlayerInteractedInLevel = false;
+  
+  // Update jigsaw puzzle with initial guess position if this is a jigsaw level
+  if (currentLevel.jigsawImage && levelRenderer) {
+    const initialPercentageGuess = {
+      x: (guess.x / ART_WIDTH) * 100,
+      y: (guess.y / ART_HEIGHT) * 100,
+    };
+    levelRenderer.updateJigsawPuzzle(initialPercentageGuess);
+  }
   
   if (successText) {
     uiContainer.removeChild(successText);
@@ -478,15 +487,35 @@ canvas.addEventListener("mousedown", () => {
     return;
   }
   
-  // mouse is already mapped to virtual space via mousemove
+  // Convert mouse to art space and clamp
+  const artX = Math.max(0, Math.min(ART_WIDTH, mouse.x - artOriginX));
+  const artY = Math.max(0, Math.min(ART_HEIGHT, mouse.y - artOriginY));
+  
+  // Check pickup condition based on level type
+  if (currentLevel.jigsawImage) {
+    // For jigsaw levels, check if click is on the target piece
+    if (!levelRenderer.isPointOnJigsawTargetPiece({ x: artX, y: artY })) {
+      // Click is not on the target piece, don't start dragging
+      return;
+    }
+  } else {
+    // For regular levels, check if mouse is within pickup radius of current cursor position
+    const mousePoint = { x: artX, y: artY };
+    const distance = LevelManager.distance(mousePoint, guess);
+    
+    if (distance > PICKUP_RADIUS) {
+      // Mouse is too far from cursor, don't start dragging
+      return;
+    }
+  }
+  
   isDragging = true;
   isMouseButtonPressed = true;
   successStartMs = null; // cancel any success animation while dragging
   successMessageVisible = false;
   hasPlayerInteractedInLevel = true;
-  // Convert last mouse to art space and clamp
-  const artX = Math.max(0, Math.min(ART_WIDTH, mouse.x - artOriginX));
-  const artY = Math.max(0, Math.min(ART_HEIGHT, mouse.y - artOriginY));
+  
+  // Set guess to mouse position
   guess.x = artX;
   guess.y = artY;
   
@@ -531,15 +560,31 @@ canvas.addEventListener("mouseenter", () => {
   
   // If mouse button is still pressed when entering canvas, resume dragging
   if (isMouseButtonPressed) {
-    isDragging = true;
     // Convert last mouse to art space and clamp
     const artX = Math.max(0, Math.min(ART_WIDTH, mouse.x - artOriginX));
     const artY = Math.max(0, Math.min(ART_HEIGHT, mouse.y - artOriginY));
-    guess.x = artX;
-    guess.y = artY;
     
-    // Hide cursor if resuming drag
-    canvas.style.cursor = 'none';
+    // Check pickup condition based on level type
+    let canPickup = false;
+    if (currentLevel.jigsawImage) {
+      // For jigsaw levels, check if click is on the target piece
+      canPickup = levelRenderer.isPointOnJigsawTargetPiece({ x: artX, y: artY });
+    } else {
+      // For regular levels, check if mouse is within pickup radius of current cursor position
+      canPickup = LevelManager.distance({ x: artX, y: artY }, guess) <= PICKUP_RADIUS;
+    }
+    
+    if (canPickup) {
+      isDragging = true;
+      guess.x = artX;
+      guess.y = artY;
+      
+      // Hide cursor if resuming drag
+      canvas.style.cursor = 'none';
+    } else {
+      // Mouse is too far from cursor, don't resume dragging
+      canvas.style.cursor = 'default';
+    }
   } else {
     // Show cursor if not dragging
     canvas.style.cursor = 'default';

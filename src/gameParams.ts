@@ -6,3 +6,6 @@ export const TABLET_HEIGHT = 729;
 
 export const ART_WIDTH = 1152;
 export const ART_HEIGHT = 648;
+
+// Pickup radius - minimum distance to current cursor to start dragging
+export const PICKUP_RADIUS = 20;

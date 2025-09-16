@@ -594,6 +594,14 @@ export class LevelRenderer {
     return null;
   }
 
+  // Check if a point is on the target piece for jigsaw levels
+  isPointOnJigsawTargetPiece(point: { x: number; y: number }): boolean {
+    if (this.scatterPuzzle) {
+      return this.scatterPuzzle.isPointOnTargetPiece(point);
+    }
+    return false;
+  }
+
   // Update curve cursor position
   updateCurveCursor(activePixelGuess: Point): void {
     if (this.curveCursorSprite) {

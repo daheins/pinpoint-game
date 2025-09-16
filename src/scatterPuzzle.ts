@@ -204,6 +204,25 @@ export class ScatterPuzzle {
     this.currentGuess = guess;
   }
 
+  // Check if a point (in canvas pixel coordinates) is within the target piece bounds
+  isPointOnTargetPiece(point: { x: number; y: number }): boolean {
+    if (!this.targetPiece) return false;
+    
+    // Calculate piece dimensions
+    const pieceWidth = this.canvasWidth / this.jigsawGridSize;
+    const pieceHeight = this.canvasHeight / this.jigsawGridSize;
+    
+    // Get current target piece position
+    const pieceX = this.targetPiece.sprite.x;
+    const pieceY = this.targetPiece.sprite.y;
+    
+    // Check if point is within piece bounds
+    return point.x >= pieceX && 
+           point.x <= pieceX + pieceWidth &&
+           point.y >= pieceY && 
+           point.y <= pieceY + pieceHeight;
+  }
+
   destroy() {
     this.app.ticker.remove(this.update);
     this.container.destroy({ children: true });
