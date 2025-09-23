@@ -18,7 +18,7 @@
     "dialogCharacterImage": "char_sad.png",
     "dialogPosition": "bottom",
     "target": { "x": 7.8, "y": 37.5 },
-    "targetRadius": 8,
+    "targetRadius": 2,
     "jigsawImage": "wallhaven-rd3pjw.jpg",
     "jigsawMovement": 0
   },
@@ -28,33 +28,33 @@
     "dialogCharacterImage": "char_smile.png",
     "dialogPosition": "bottom",
     "target": { "x": 47.8, "y": 7.5 },
-    "targetRadius": 20
+    "targetRadius": 4
   },
   "5": {
     "displayName": "Game",
     "target": { "x": 77.8, "y": 67.5 },
-    "targetRadius": 20,
+    "targetRadius": 4,
     "image": "fuji.png",
     "imageFilterDist": "warp"
   },
   "6": {
     "displayName": "Game",
     "target": { "x": 35.6, "y": 29.25 },
-    "targetRadius": 20,
+    "targetRadius": 4,
     "image": "genshinFireworks.webp",
     "imageFilterDist": "pixel"
   },
   "7": {
     "displayName": "Game",
     "target": { "x": 62.5, "y": 16.75 },
-    "targetRadius": 20,
+    "targetRadius": 4,
     "image": "purpleMountain.jpg",
     "imageFilterDist": "twist"
   },
-  "24": {
-    "displayName": "Level 4",
+  "8": {
+    "displayName": "Game",
     "target": { "x": 7.2, "y": 10.25 },
-    "targetRadius": 7,
+    "targetRadius": 1,
     "fixedImage": "10x10gridTransparent.png",
     "multiImage": [
       {
@@ -69,7 +69,9 @@
         "image": "level4_3.png",
         "target": { "x": 56.1, "y": 83.4 }
       }
-    ]
+    ],
+    "multiImageRadius": 2,
+    "multiImageFilter": "twist"
   },
   "25": {
     "displayName": "Level 5",

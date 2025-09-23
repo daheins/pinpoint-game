@@ -6,7 +6,7 @@ import { Level, LevelManager, LevelRenderer } from './level';
 import { TABLET_WIDTH, TABLET_HEIGHT, ART_WIDTH, ART_HEIGHT, PICKUP_RADIUS } from './gameParams';
 
 // Import debug utilities
-import { createCurveDistanceDisplay, createCoordinateDisplay, createTargetCircle } from './game_debug';
+import { createCurveDistanceDisplay, createCoordinateDisplay, createTargetCircle, createMultiImageTargetCircles } from './game_debug';
 
 // Import dialog manager
 import { DialogManager } from './dialogManager';
@@ -469,7 +469,7 @@ function gameLoop() {
           x: (currentLevel.target.x / 100) * ART_WIDTH,
           y: (currentLevel.target.y / 100) * ART_HEIGHT
         };
-        const isInCorrectPosition = levelManager.isGuessSuccessful(guess, target, currentLevel.targetRadius);
+        const isInCorrectPosition = levelManager.isGuessSuccessful(guess, target, (currentLevel.targetRadius / 100) * ART_HEIGHT);
         
         if (!isInCorrectPosition) {
           const currentTime = performance.now();
@@ -502,6 +502,7 @@ function gameLoop() {
   createCurveDistanceDisplay(uiContainer, currentLevel, guess, levelRenderer);
   createCoordinateDisplay(uiContainer, currentLevel, guess);
   createTargetCircle(uiContainer, currentLevel);
+  createMultiImageTargetCircles(uiContainer, currentLevel);
 
   // Check for success only when mouse is not pressed and level interaction began
   if (!isMouseButtonPressed && successStartMs === null && currentLevel && hasPlayerInteractedInLevel) {
@@ -509,7 +510,7 @@ function gameLoop() {
       x: (currentLevel.target.x / 100) * ART_WIDTH,
       y: (currentLevel.target.y / 100) * ART_HEIGHT
     };
-    const wasFound = levelManager.isGuessSuccessful(guess, target, currentLevel.targetRadius);
+    const wasFound = levelManager.isGuessSuccessful(guess, target, (currentLevel.targetRadius / 100) * ART_HEIGHT);
     if (wasFound) {
       successStartMs = performance.now();
     }

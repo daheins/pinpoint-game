@@ -30,6 +30,8 @@ export class Level {
   imageFilterY?: string;
   fixedImage?: string;
   multiImage?: MultiImageElement[];
+  multiImageRadius?: number;
+  multiImageFilter?: string;
   jigsawImage?: string;
   jigsawSlope?: number;
   jigsawMovement?: number;
@@ -49,6 +51,8 @@ export class Level {
     this.image = levelData.image;
     this.fixedImage = levelData.fixedImage;
     this.multiImage = levelData.multiImage;
+    this.multiImageRadius = levelData.multiImageRadius;
+    this.multiImageFilter = levelData.multiImageFilter;
     this.jigsawImage = levelData.jigsawImage;
     this.jigsawSlope = levelData.jigsawSlope;
     this.jigsawMovement = levelData.jigsawMovement;
@@ -193,6 +197,11 @@ export class LevelRenderer {
   private noiseFilter: NoiseFilter | null = null;
   private pixelateFilter: PixelateFilter | null = null;
   private twistFilter: TwistFilter | null = null;
+  // MultiImage filters - one set per multiImage sprite
+  private multiImageBlurFilters: BlurFilter[] = [];
+  private multiImageNoiseFilters: NoiseFilter[] = [];
+  private multiImagePixelateFilters: PixelateFilter[] = [];
+  private multiImageTwistFilters: TwistFilter[] = [];
   private scatterPuzzle: ScatterPuzzle | null = null;
   private curveImage: HTMLImageElement | null = null;
   private curveDisplaySprite: Sprite | null = null;
@@ -283,6 +292,12 @@ export class LevelRenderer {
     this.pixelateFilter = null;
     this.twistFilter = null;
     
+    // Clear previous multiImage filters
+    this.multiImageBlurFilters = [];
+    this.multiImageNoiseFilters = [];
+    this.multiImagePixelateFilters = [];
+    this.multiImageTwistFilters = [];
+    
     
     // Load background image if level has one
     if (level.image) {
@@ -357,12 +372,38 @@ export class LevelRenderer {
     if (level.multiImage) {
       try {
         // Load all images and create sprites
-        for (const imageElement of level.multiImage) {
+        for (let i = 0; i < level.multiImage.length; i++) {
+          const imageElement = level.multiImage[i];
           const texture = await Assets.load(`${import.meta.env.BASE_URL}images/${imageElement.image}`);
           const sprite = new Sprite(texture);
           this.scaleSpriteToFit(sprite);
           this.backgroundSprites.push(sprite);
           this.imageContainer.addChild(sprite);
+          
+          // Create filters for this sprite if multiImageFilter is specified
+          if (level.multiImageFilter) {
+            if (level.multiImageFilter === 'blur') {
+              const blurFilter = new BlurFilter();
+              blurFilter.blur = 0; // Will be updated dynamically
+              this.multiImageBlurFilters.push(blurFilter);
+            } else if (level.multiImageFilter === 'noise') {
+              const noiseFilter = new NoiseFilter();
+              noiseFilter.noise = 0; // Will be updated dynamically
+              noiseFilter.seed = Math.random(); // Random seed for varied noise patterns
+              this.multiImageNoiseFilters.push(noiseFilter);
+            } else if (level.multiImageFilter === 'pixel') {
+              const pixelateFilter = new PixelateFilter(1); // Will be updated dynamically
+              this.multiImagePixelateFilters.push(pixelateFilter);
+            } else if (level.multiImageFilter === 'twist') {
+              const twistFilter = new TwistFilter();
+              twistFilter.angle = 0;
+              twistFilter.radius = 100;
+              // Set twist center to ART space center
+              twistFilter.offset.x = this.canvasWidth / 2;
+              twistFilter.offset.y = this.canvasHeight / 2;
+              this.multiImageTwistFilters.push(twistFilter);
+            }
+          }
         }
       } catch (error) {
         console.error(`Failed to load multi-image level:`, error);
@@ -600,18 +641,117 @@ export class LevelRenderer {
   updateMultiImageAlpha(activePercentageGuess: Point, level: Level): void {
     // Multi-image alpha reveal: nearer to a sprite's target -> higher alpha
     if (level.multiImage && this.backgroundSprites.length === level.multiImage.length) {
-      for (let i = 0; i < this.backgroundSprites.length; i++) {
-        const sprite = this.backgroundSprites[i];
-        const t = level.multiImage[i].target; // 0..100
-        const dx = (activePercentageGuess.x - t.x);
-        const dy = (activePercentageGuess.y - t.y);
-        const d = Math.sqrt(dx * dx + dy * dy); // 0..~141
-        // Map LevelManager.distance to focus in 0..1 (closer = 1). Tunable falloff.
-        const focus = Math.max(0, 1 - (d / 30));
-        // Base alpha when far: low but non-zero to still see stacks
-        const minAlpha = 0.2;
-        sprite.alpha = minAlpha + (1 - minAlpha) * focus;
+      // Check if we have multiImageRadius for enhanced behavior
+      if (level.multiImageRadius) {
+        // Enhanced behavior: always use distance-based alpha, plus exclusive mode when within radius
+        let spriteWithinRadius = -1;
+        
+        // First pass: find if any sprite is within radius
+        for (let i = 0; i < level.multiImage.length; i++) {
+          const t = level.multiImage[i].target; // 0..100
+          const dx = (activePercentageGuess.x - t.x);
+          const dy = (activePercentageGuess.y - t.y);
+          const d = Math.sqrt(dx * dx + dy * dy);
+          
+          if (d <= level.multiImageRadius) {
+            spriteWithinRadius = i;
+            break; // Use first sprite found within radius
+          }
+        }
+        
+        // Second pass: always calculate distance-based alpha, with exclusive override
+        for (let i = 0; i < this.backgroundSprites.length; i++) {
+          const sprite = this.backgroundSprites[i];
+          const t = level.multiImage[i].target; // 0..100
+          const dx = (activePercentageGuess.x - t.x);
+          const dy = (activePercentageGuess.y - t.y);
+          const d = Math.sqrt(dx * dx + dy * dy);
+          
+          if (spriteWithinRadius === i) {
+            // This sprite is within radius - max alpha (exclusive mode)
+            sprite.alpha = 1.0;
+          } else if (spriteWithinRadius >= 0) {
+            // Another sprite is within radius - this one gets 0 alpha (exclusive mode)
+            sprite.alpha = 0.0;
+          } else {
+            // No sprite within radius - use distance-based scaling across entire screen
+            // Use a large falloff radius to cover the whole screen smoothly
+            const falloffRadius = 70; // Large enough to cover screen corner-to-corner distance (~141)
+            const focus = Math.max(0, 1 - (d / falloffRadius));
+            // Base alpha when far: low but non-zero to still see stacks
+            sprite.alpha = focus;
+          }
+        }
+      } else {
+        // Original behavior for levels without multiImageRadius
+        for (let i = 0; i < this.backgroundSprites.length; i++) {
+          const sprite = this.backgroundSprites[i];
+          const t = level.multiImage[i].target; // 0..100
+          const dx = (activePercentageGuess.x - t.x);
+          const dy = (activePercentageGuess.y - t.y);
+          const d = Math.sqrt(dx * dx + dy * dy); // 0..~141
+          // Map LevelManager.distance to focus in 0..1 (closer = 1). Tunable falloff.
+          const focus = Math.max(0, 1 - (d / 30));
+          // Base alpha when far: low but non-zero to still see stacks
+          const minAlpha = 0.2;
+          sprite.alpha = minAlpha + (1 - minAlpha) * focus;
+        }
       }
+    }
+  }
+
+  updateMultiImageFilters(activePercentageGuess: Point, level: Level): void {
+    // Apply filters to multiImage sprites based on distance from their targets
+    if (!level.multiImage || !level.multiImageRadius || !level.multiImageFilter) return;
+    if (this.backgroundSprites.length !== level.multiImage.length) return;
+
+    for (let i = 0; i < this.backgroundSprites.length; i++) {
+      const sprite = this.backgroundSprites[i];
+      
+      // Calculate minimum distance to any multiImage target
+      let minDistanceToAnyTarget = Number.MAX_VALUE;
+      for (const multiImageElement of level.multiImage) {
+        const dxAny = activePercentageGuess.x - multiImageElement.target.x;
+        const dyAny = activePercentageGuess.y - multiImageElement.target.y;
+        const distToAny = Math.sqrt(dxAny * dxAny + dyAny * dyAny);
+        minDistanceToAnyTarget = Math.min(minDistanceToAnyTarget, distToAny);
+      }
+      
+      // Determine filter intensity based on distance
+      let filterIntensity = 0;
+      if (minDistanceToAnyTarget >= level.multiImageRadius) {
+        // Far from all targets: apply full filter (100%)
+        filterIntensity = 1.0;
+      } else {
+        // Within radius of at least one target: fade from 100% to 0%
+        const fadeRatio = minDistanceToAnyTarget / level.multiImageRadius;
+        filterIntensity = fadeRatio;
+      }
+      
+      // Apply the appropriate filter based on level.multiImageFilter
+      const filters: any[] = [];
+      
+      if (level.multiImageFilter === 'blur' && i < this.multiImageBlurFilters.length) {
+        const blurFilter = this.multiImageBlurFilters[i];
+        blurFilter.blur = filterIntensity * 10; // Scale blur intensity
+        filters.push(blurFilter);
+      } else if (level.multiImageFilter === 'noise' && i < this.multiImageNoiseFilters.length) {
+        const noiseFilter = this.multiImageNoiseFilters[i];
+        noiseFilter.noise = filterIntensity * 0.5; // Scale noise intensity
+        filters.push(noiseFilter);
+      } else if (level.multiImageFilter === 'pixel' && i < this.multiImagePixelateFilters.length) {
+        const pixelateFilter = this.multiImagePixelateFilters[i];
+        pixelateFilter.size = 1 + filterIntensity * 20; // Scale pixel size (1 to 21)
+        filters.push(pixelateFilter);
+      } else if (level.multiImageFilter === 'twist' && i < this.multiImageTwistFilters.length) {
+        const twistFilter = this.multiImageTwistFilters[i];
+        twistFilter.angle = filterIntensity * 10; // Scale twist angle
+        twistFilter.radius = 0 + filterIntensity * TABLET_WIDTH; // Scale twist radius (50 to 250)
+        filters.push(twistFilter);
+      }
+      
+      // Apply filters to the sprite
+      sprite.filters = filters.length > 0 ? filters : null;
     }
   }
 
@@ -698,8 +838,8 @@ export class LevelRenderer {
     this.updateXFilter(activePercentageGuess.x, activePercentageGuess.y, level);
     this.updateYFilter(activePercentageGuess.x, activePercentageGuess.y, level);
     
-    // Update multi-image alpha for multi-image levels
     this.updateMultiImageAlpha(activePercentageGuess, level);
+    this.updateMultiImageFilters(activePercentageGuess, level);
     
     // Update jigsaw puzzle for jigsaw levels
     this.updateJigsawPuzzle(activePercentageGuess);

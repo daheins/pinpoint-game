@@ -10,6 +10,7 @@ import { showDebugTools } from './gameParams_debug';
 let coordinateDisplay: Text | null = null;
 let curveDistanceDisplay: Text | null = null;
 let targetCircle: Graphics | null = null;
+let multiImageTargetCircles: Graphics[] = [];
 
 export function createCurveDistanceDisplay(
   uiContainer: Container,
@@ -30,22 +31,19 @@ export function createCurveDistanceDisplay(
     const curveDistance = levelRenderer.getCurveDistance(activePercentageGuess);
     const distanceText = curveDistance !== null ? curveDistance.toFixed(1) : 'N/A';
     
-    const text = new Text({
-      text: `Curve Distance: ${distanceText}`,
-      style: {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 16,
-        fill: 0xFFFFFF,
-        align: 'right',
-        fontWeight: '400',
-        stroke: { color: 0x000000, width: 1 },
-        dropShadow: {
-          color: 0x000000,
-          blur: 1,
-          distance: 1,
-          alpha: 0.5
-        }
-      }
+    const text = new Text(`Curve Distance: ${distanceText}`, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: 16,
+      fill: 0xFFFFFF,
+      align: 'right',
+      fontWeight: '400',
+      stroke: 0x000000,
+      strokeThickness: 1,
+      dropShadow: true,
+      dropShadowColor: 0x000000,
+      dropShadowBlur: 1,
+      dropShadowDistance: 1,
+      dropShadowAlpha: 0.5
     });
     
     // Configure text rendering for maximum crispness
@@ -57,9 +55,11 @@ export function createCurveDistanceDisplay(
     const bgWidth = text.width + (padding * 2);
     const bgHeight = text.height + (padding * 2);
     
-    backgroundGraphics.rect(0, 0, bgWidth, bgHeight);
-    backgroundGraphics.fill({ color: 0x000000, alpha: 0.7 });
-    backgroundGraphics.stroke({ width: 1, color: 0xFFFFFF, alpha: 0.5 });
+    backgroundGraphics.beginFill(0x000000, 0.7);
+    backgroundGraphics.drawRect(0, 0, bgWidth, bgHeight);
+    backgroundGraphics.endFill();
+    backgroundGraphics.lineStyle(1, 0xFFFFFF, 0.5);
+    backgroundGraphics.drawRect(0, 0, bgWidth, bgHeight);
     
     // Create container for background and text
     const curveDistanceContainer = new Container();
@@ -94,22 +94,19 @@ export function createCoordinateDisplay(
       y: (guess.y / ART_HEIGHT) * 100,
     };
     
-    const text = new Text({
-      text: `(x: ${activePercentageGuess.x.toFixed(1)}, y: ${activePercentageGuess.y.toFixed(1)})`,
-      style: {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 16,
-        fill: 0xFFFFFF,
-        align: 'right',
-        fontWeight: '400',
-        stroke: { color: 0x000000, width: 1 },
-        dropShadow: {
-          color: 0x000000,
-          blur: 1,
-          distance: 1,
-          alpha: 0.5
-        }
-      }
+    const text = new Text(`(x: ${activePercentageGuess.x.toFixed(1)}, y: ${activePercentageGuess.y.toFixed(1)})`, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: 16,
+      fill: 0xFFFFFF,
+      align: 'right',
+      fontWeight: '400',
+      stroke: 0x000000,
+      strokeThickness: 1,
+      dropShadow: true,
+      dropShadowColor: 0x000000,
+      dropShadowBlur: 1,
+      dropShadowDistance: 1,
+      dropShadowAlpha: 0.5
     });
     
     // Configure text rendering for maximum crispness
@@ -121,9 +118,11 @@ export function createCoordinateDisplay(
     const bgWidth = text.width + (padding * 2);
     const bgHeight = text.height + (padding * 2);
     
-    backgroundGraphics.rect(0, 0, bgWidth, bgHeight);
-    backgroundGraphics.fill({ color: 0x000000, alpha: 0.7 });
-    backgroundGraphics.stroke({ width: 1, color: 0xFFFFFF, alpha: 0.5 });
+    backgroundGraphics.beginFill(0x000000, 0.7);
+    backgroundGraphics.drawRect(0, 0, bgWidth, bgHeight);
+    backgroundGraphics.endFill();
+    backgroundGraphics.lineStyle(1, 0xFFFFFF, 0.5);
+    backgroundGraphics.drawRect(0, 0, bgWidth, bgHeight);
     
     // Create container for background and text
     const coordinateContainer = new Container();
@@ -155,15 +154,52 @@ export function createTargetCircle(
     // Convert target percentage to pixel coordinates
     const targetX = (currentLevel.target.x / 100) * ART_WIDTH;
     const targetY = (currentLevel.target.y / 100) * ART_HEIGHT;
-    const radius = currentLevel.targetRadius;
+    // Convert targetRadius from percentage of TABLET_HEIGHT to pixels
+    const radius = (currentLevel.targetRadius / 100) * ART_HEIGHT;
     
     const circle = new Graphics();
-    circle.circle(targetX, targetY, radius);
-    circle.stroke({ width: 2, color: 0x0080FF, alpha: 0.8 });
-    circle.fill({ color: 0x0080FF, alpha: 0.2 });
+    circle.beginFill(0x0080FF, 0.2);
+    circle.drawCircle(targetX, targetY, radius);
+    circle.endFill();
+    circle.lineStyle(2, 0x0080FF, 0.8);
+    circle.drawCircle(targetX, targetY, radius);
     
     uiContainer.addChild(circle);
     targetCircle = circle;
+  }
+}
+
+export function createMultiImageTargetCircles(
+  uiContainer: Container,
+  currentLevel: Level | null
+): void {
+  // Clear existing multiImage target circles
+  multiImageTargetCircles.forEach(circle => {
+    uiContainer.removeChild(circle);
+  });
+  multiImageTargetCircles = [];
+  
+  if (showDebugTools && currentLevel && currentLevel.multiImage && currentLevel.multiImageRadius) {
+    // Create circles for each multiImage target
+    currentLevel.multiImage.forEach((imageElement, index) => {
+      // Convert target percentage to pixel coordinates
+      const targetX = (imageElement.target.x / 100) * ART_WIDTH;
+      const targetY = (imageElement.target.y / 100) * ART_HEIGHT;
+      // Convert multiImageRadius from percentage of TABLET_HEIGHT to pixels
+      const radius = (currentLevel.multiImageRadius! / 100) * ART_HEIGHT;
+      
+      const color = { stroke: 0x80FF00, fill: 0x80FF00 }; // Green;
+      
+      const circle = new Graphics();
+      circle.beginFill(color.fill, 0.2);
+      circle.drawCircle(targetX, targetY, radius);
+      circle.endFill();
+      circle.lineStyle(2, color.stroke, 0.8);
+      circle.drawCircle(targetX, targetY, radius);
+      
+      uiContainer.addChild(circle);
+      multiImageTargetCircles.push(circle);
+    });
   }
 }
 
@@ -181,4 +217,9 @@ export function clearDebugDisplays(uiContainer: Container): void {
     uiContainer.removeChild(targetCircle);
     targetCircle = null;
   }
+  // Clear multiImage target circles
+  multiImageTargetCircles.forEach(circle => {
+    uiContainer.removeChild(circle);
+  });
+  multiImageTargetCircles = [];
 }
