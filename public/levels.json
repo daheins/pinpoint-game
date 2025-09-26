@@ -51,7 +51,28 @@
     "image": "purpleMountain.jpg",
     "imageFilterDist": "twist"
   },
-  "8": {
+  "11": {
+    "displayName": "Game",
+    "target": { "x": 10.75, "y": 20.05 },
+    "targetRadius": 1,
+    "fixedImage": "10x10gridTransparent.png",
+    "image": "99.png"
+  },
+  "12": {
+    "displayName": "Game",
+    "target": { "x": 3.7, "y": 16.1 },
+    "targetRadius": 1,
+    "fixedImage": "10x10gridTransparent.png",
+    "multiImage": [
+      {
+        "image": "73.png",
+        "target": { "x": 93.7, "y": 16.1 }
+      }
+    ],
+    "multiImageRadius": 4,
+    "multiImageFilter": "twist"
+  },
+  "13": {
     "displayName": "Game",
     "target": { "x": 7.2, "y": 10.25 },
     "targetRadius": 1,
