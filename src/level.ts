@@ -218,6 +218,60 @@ export class LevelRenderer {
     this.gradientContainer = gradientContainer;
     this.canvasWidth = canvasWidth;
     this.canvasHeight = canvasHeight;
+    
+    // Create all filters once during construction
+    this.createFilters();
+  }
+
+  private createFilters(): void {
+    // Create displacement filter (will need displacement sprite during level loading)
+    // For now, create with a temporary sprite that will be replaced
+    this.displacementFilter = null; // Will be created when displacement sprite is available
+    
+    // Create blur filter
+    this.blurFilter = new BlurFilter();
+    this.blurFilter.blur = 0;
+    
+    // Create noise filter
+    this.noiseFilter = new NoiseFilter();
+    this.noiseFilter.noise = 0;
+    this.noiseFilter.seed = Math.random();
+    
+    // Create pixelate filter
+    this.pixelateFilter = new PixelateFilter(1);
+    
+    // Create twist filter
+    this.twistFilter = new TwistFilter();
+    this.twistFilter.angle = 0;
+    this.twistFilter.radius = 100;
+    this.twistFilter.padding = 0;
+    this.twistFilter.offset.x = TABLET_WIDTH / 2;
+    this.twistFilter.offset.y = TABLET_HEIGHT / 2;
+  }
+
+  private resetFilters(): void {
+    // Reset all filters to their default state
+    if (this.blurFilter) {
+      this.blurFilter.blur = 0;
+    }
+    
+    if (this.noiseFilter) {
+      this.noiseFilter.noise = 0;
+    }
+    
+    if (this.pixelateFilter) {
+      this.pixelateFilter.size = 1;
+    }
+    
+    if (this.twistFilter) {
+      this.twistFilter.angle = 0;
+      this.twistFilter.radius = 100;
+    }
+    
+    if (this.displacementFilter) {
+      this.displacementFilter.scale.x = 0;
+      this.displacementFilter.scale.y = 0;
+    }
   }
 
   // Helper method to scale sprite to fit canvas while maintaining aspect ratio
@@ -286,18 +340,8 @@ export class LevelRenderer {
     // Clear any existing filters on the container
     (this.imageContainer as any).filters = undefined;
     
-    // Clear previous filters
-    this.blurFilter = null;
-    this.noiseFilter = null;
-    this.pixelateFilter = null;
-    this.twistFilter = null;
-    
-    // Clear previous multiImage filters
-    this.multiImageBlurFilters = [];
-    this.multiImageNoiseFilters = [];
-    this.multiImagePixelateFilters = [];
-    this.multiImageTwistFilters = [];
-    
+    // Reset filter properties to defaults
+    this.resetFilters();
     
     // Load background image if level has one
     if (level.image) {
@@ -311,28 +355,11 @@ export class LevelRenderer {
         this.displacementSprite = new Sprite(displacementTexture);
         this.scaleSpriteToFit(this.displacementSprite);
         
-        // Create displacement filter
+        // Create displacement filter with the displacement sprite
+        // DisplacementFilter requires the sprite in constructor and can't be changed later
         this.displacementFilter = new DisplacementFilter(this.displacementSprite);
         this.displacementFilter.scale.x = 0;
         this.displacementFilter.scale.y = 0;
-        
-        // Create blur filter for blur effects
-        this.blurFilter = new BlurFilter();
-        this.blurFilter.blur = 0; // Will be updated dynamically
-        
-        // Create noise filter for noise effects
-        this.noiseFilter = new NoiseFilter();
-        this.noiseFilter.noise = 0; // Will be updated dynamically
-        this.noiseFilter.seed = Math.random(); // Random seed for varied noise patterns
-        
-        // Create pixelate filter for retro pixel effects
-        this.pixelateFilter = new PixelateFilter(1); // Will be updated dynamically
-        
-        // Create twist filter for spiral/swirl effects
-        this.twistFilter = new TwistFilter();
-        // Set default values - center will be updated dynamically
-        this.twistFilter.angle = 0;
-        this.twistFilter.radius = 100;
         
         // Apply filters to sprite based on level configuration
         const filters: any[] = [];
@@ -355,9 +382,6 @@ export class LevelRenderer {
         
         if (level.imageFilterDist === 'twist' || level.imageFilterX === 'twist' || level.imageFilterY === 'twist') {
           filters.push(this.twistFilter);
-          // Set twist center to ART space center (same as cursor center)
-          this.twistFilter.offset.x = ART_WIDTH / 2;
-          this.twistFilter.offset.y = ART_HEIGHT / 2;
         }
         
         this.backgroundSprite.filters = filters;
@@ -371,6 +395,12 @@ export class LevelRenderer {
     // Load multi-image elements if level has them
     if (level.multiImage) {
       try {
+        // Clear previous multiImage filters
+        this.multiImageBlurFilters = [];
+        this.multiImageNoiseFilters = [];
+        this.multiImagePixelateFilters = [];
+        this.multiImageTwistFilters = [];
+        
         // Load all images and create sprites
         for (let i = 0; i < level.multiImage.length; i++) {
           const imageElement = level.multiImage[i];
@@ -381,26 +411,34 @@ export class LevelRenderer {
           this.imageContainer.addChild(sprite);
           
           // Create filters for this sprite if multiImageFilter is specified
+          // Clone from existing base filters to inherit their settings
           if (level.multiImageFilter) {
-            if (level.multiImageFilter === 'blur') {
+            if (level.multiImageFilter === 'blur' && this.blurFilter) {
               const blurFilter = new BlurFilter();
-              blurFilter.blur = 0; // Will be updated dynamically
+              // Copy settings from base filter
+              blurFilter.blur = this.blurFilter.blur;
+              blurFilter.quality = this.blurFilter.quality;
+              blurFilter.resolution = this.blurFilter.resolution;
               this.multiImageBlurFilters.push(blurFilter);
-            } else if (level.multiImageFilter === 'noise') {
+            } else if (level.multiImageFilter === 'noise' && this.noiseFilter) {
               const noiseFilter = new NoiseFilter();
-              noiseFilter.noise = 0; // Will be updated dynamically
-              noiseFilter.seed = Math.random(); // Random seed for varied noise patterns
+              // Copy settings from base filter
+              noiseFilter.noise = this.noiseFilter.noise;
+              noiseFilter.seed = Math.random(); // Keep unique seed per sprite
               this.multiImageNoiseFilters.push(noiseFilter);
-            } else if (level.multiImageFilter === 'pixel') {
-              const pixelateFilter = new PixelateFilter(1); // Will be updated dynamically
+            } else if (level.multiImageFilter === 'pixel' && this.pixelateFilter) {
+              const pixelateFilter = new PixelateFilter();
+              // Copy settings from base filter
+              pixelateFilter.size = this.pixelateFilter.size;
               this.multiImagePixelateFilters.push(pixelateFilter);
-            } else if (level.multiImageFilter === 'twist') {
+            } else if (level.multiImageFilter === 'twist' && this.twistFilter) {
               const twistFilter = new TwistFilter();
-              twistFilter.angle = 0;
-              twistFilter.radius = 100;
-              // Set twist center to ART space center
-              twistFilter.offset.x = this.canvasWidth / 2;
-              twistFilter.offset.y = this.canvasHeight / 2;
+              // Copy settings from base filter
+              twistFilter.angle = this.twistFilter.angle;
+              twistFilter.radius = this.twistFilter.radius;
+              twistFilter.padding = this.twistFilter.padding;
+              twistFilter.offset.x = this.twistFilter.offset.x;
+              twistFilter.offset.y = this.twistFilter.offset.y;
               this.multiImageTwistFilters.push(twistFilter);
             }
           }
@@ -487,25 +525,13 @@ export class LevelRenderer {
         this.curveCursorSprite = null;
       }
     }
-    
-    // Clean up unused properties
-    if (!level.image) {
-      this.displacementFilter = null;
-      this.displacementSprite = null;
-      this.blurFilter = null;
-      this.noiseFilter = null;
-      this.pixelateFilter = null;
-      this.twistFilter = null;
-    }
   }
 
   updateDistanceFilter(playerX: number, playerY: number, level: Level): void {
     if (!level.imageFilterDist) return;
     
     // Calculate cartesian distance from player to target
-    const distX = Math.abs(playerX - level.target.x);
-    const distY = Math.abs(playerY - level.target.y);
-    const distance = Math.sqrt(distX ** 2 + distY ** 2);
+    const distance = LevelManager.distance({ x: playerX, y: playerY }, level.target);
     
     if (level.imageFilterDist === 'warp' && this.displacementFilter) {
       // Scale displacement based on distance (farther = more warp)
@@ -649,9 +675,7 @@ export class LevelRenderer {
         // First pass: find if any sprite is within radius
         for (let i = 0; i < level.multiImage.length; i++) {
           const t = level.multiImage[i].target; // 0..100
-          const dx = (activePercentageGuess.x - t.x);
-          const dy = (activePercentageGuess.y - t.y);
-          const d = Math.sqrt(dx * dx + dy * dy);
+          const d = LevelManager.distance(activePercentageGuess, t);
           
           if (d <= level.multiImageRadius) {
             spriteWithinRadius = i;
@@ -663,9 +687,7 @@ export class LevelRenderer {
         for (let i = 0; i < this.backgroundSprites.length; i++) {
           const sprite = this.backgroundSprites[i];
           const t = level.multiImage[i].target; // 0..100
-          const dx = (activePercentageGuess.x - t.x);
-          const dy = (activePercentageGuess.y - t.y);
-          const d = Math.sqrt(dx * dx + dy * dy);
+          const d = LevelManager.distance(activePercentageGuess, t);
           
           if (spriteWithinRadius === i) {
             // This sprite is within radius - max alpha (exclusive mode)
@@ -687,9 +709,7 @@ export class LevelRenderer {
         for (let i = 0; i < this.backgroundSprites.length; i++) {
           const sprite = this.backgroundSprites[i];
           const t = level.multiImage[i].target; // 0..100
-          const dx = (activePercentageGuess.x - t.x);
-          const dy = (activePercentageGuess.y - t.y);
-          const d = Math.sqrt(dx * dx + dy * dy); // 0..~141
+          const d = LevelManager.distance(activePercentageGuess, t); // 0..~141
           // Map LevelManager.distance to focus in 0..1 (closer = 1). Tunable falloff.
           const focus = Math.max(0, 1 - (d / 30));
           // Base alpha when far: low but non-zero to still see stacks
@@ -711,9 +731,7 @@ export class LevelRenderer {
       // Calculate minimum distance to any multiImage target
       let minDistanceToAnyTarget = Number.MAX_VALUE;
       for (const multiImageElement of level.multiImage) {
-        const dxAny = activePercentageGuess.x - multiImageElement.target.x;
-        const dyAny = activePercentageGuess.y - multiImageElement.target.y;
-        const distToAny = Math.sqrt(dxAny * dxAny + dyAny * dyAny);
+        const distToAny = LevelManager.distance(activePercentageGuess, multiImageElement.target);
         minDistanceToAnyTarget = Math.min(minDistanceToAnyTarget, distToAny);
       }
       
@@ -770,7 +788,8 @@ export class LevelRenderer {
       }
       
       const dist = LevelManager.distance(activePercentageGuess, level.target);
-      const maxDist = Math.sqrt(100 ** 2 + 100 ** 2);
+      // Maximum distance in percentage coordinate system (corner to corner)
+      const maxDist = LevelManager.distance({ x: 0, y: 0 }, { x: 100, y: 100 });
       const t = Math.min(dist / maxDist, 1);
       const t_root = Math.sqrt(t);
       

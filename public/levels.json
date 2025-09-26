@@ -70,7 +70,7 @@
         "target": { "x": 56.1, "y": 83.4 }
       }
     ],
-    "multiImageRadius": 2,
+    "multiImageRadius": 4,
     "multiImageFilter": "twist"
   },
   "25": {
