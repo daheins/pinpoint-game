@@ -33,6 +33,8 @@ async function loadLevels(): Promise<Level[]> {
         levelData.id = parseInt(key);
         levels.push(new Level(levelData));
       }
+
+      updateArtButtonReadout(false);
       
       return levels;
     } else {
@@ -49,6 +51,8 @@ async function loadLevels(): Promise<Level[]> {
 const canvas = document.getElementById("tablet-canvas") as HTMLCanvasElement;
 
 const container = document.getElementById("game-container") as HTMLElement;
+const mainGameArea = document.getElementById("main-game-area") as HTMLElement;
+const artCollectionButton = document.getElementById("art-collection-button") as HTMLElement;
 const sizeWarning = document.getElementById("size-warning") as HTMLElement;
 const levelNameDisplay = document.getElementById("level-name") as HTMLElement;
 const levelGrid = document.getElementById("level-grid") as HTMLElement;
@@ -92,6 +96,7 @@ let hasPlayerInteractedInLevel = false;
 let lastInteractionTime = 0;
 let isJiggling = false;
 let jiggleStartTime = 0;
+let isArtCollectionMode = false;
 const JIGGLE_INTERVAL = 3000; // 3 seconds
 const JIGGLE_DURATION = 500; // 0.5 seconds
 const JIGGLE_AMPLITUDE = 8; // pixels (vertical only)
@@ -124,17 +129,21 @@ async function loadLevel(levelIndex: number) {
   
   currentLevel = levelManager.loadLevel(levelIndex);
   levelNameDisplay.textContent = currentLevel.displayName;
+
+  updateArtButtonReadout(isArtCollectionMode);
   
   if (currentLevel.hideCanvas) {
     gameContainer.visible = false;
     if (tabletBackgroundSprite) {
       tabletBackgroundSprite.visible = false;
     }
+    artCollectionButton.style.display = 'none';
   } else {
     gameContainer.visible = true;
     if (tabletBackgroundSprite) {
       tabletBackgroundSprite.visible = true;
     }
+    artCollectionButton.style.display = 'flex';
   }
   
   // Clear previous curve cursor sprite from UI container
@@ -354,15 +363,19 @@ function resizeCanvas() {
   // Calculate total game container height: level-name + tablet-canvas
   const levelNameHeight = 40; // Approximate height of level-name (padding + font + border)
   const totalGameHeight = levelNameHeight + TABLET_HEIGHT;
-  const totalGameWidth = TABLET_WIDTH;
+  
+  // Get the button's actual width and the gap from CSS
+  const buttonWidth = artCollectionButton.offsetWidth;
+  const gapWidth = 20; // This matches the gap in #main-game-area CSS
+  const totalGameWidth = TABLET_WIDTH + buttonWidth + gapWidth;
 
   const tooSmall = window.innerWidth < totalGameWidth || window.innerHeight < totalGameHeight;
 
   if (tooSmall) {
-    container.style.display = "none";
+    mainGameArea.style.display = "none";
     sizeWarning.style.display = "block";
   } else {
-    container.style.display = "flex";
+    mainGameArea.style.display = "flex";
     sizeWarning.style.display = "none";
   }
 }
@@ -720,3 +733,68 @@ document.addEventListener("mouseup", () => {
   // Show cursor again when mouse is released anywhere
   canvas.style.cursor = 'default';
 });
+
+function updateArtButtonReadout(isPaused: boolean) {
+  const buttonText = artCollectionButton.querySelector('span') as HTMLElement;
+
+  let text = 'Back to Game';
+
+  if (!isPaused) {
+    const levelCount = levels.length;
+    const levelsComplete = Math.max(levels.indexOf(currentLevel), 0);
+
+    text = `Art Recovered:\n${levelsComplete} / ${levelCount}`;
+  }
+  buttonText.textContent = text;
+}
+
+// --- Art Collection Toggle ---
+function toggleArtCollection() {
+  isArtCollectionMode = !isArtCollectionMode;
+  
+  if (isArtCollectionMode) {
+    // Hide game-related UI elements
+    levelNameDisplay.style.display = 'none';
+    levelSelector.style.display = 'none';
+    gameContainer.visible = false;
+    
+    // Hide any active dialogs
+    // if (dialogManager) {
+    //   dialogManager.hideDialog();
+    // }
+  } else {
+    // Show game-related UI elements
+    levelNameDisplay.style.display = 'block';
+    if (showLevelSelector) {
+      levelSelector.style.display = 'flex';
+    }
+    gameContainer.visible = true;
+    
+    // Show tablet background if current level doesn't hide canvas
+    if (tabletBackgroundSprite && !currentLevel.hideCanvas) {
+      tabletBackgroundSprite.visible = true;
+    }
+    
+    // Restore dialog if current level has dialog text
+    // if (currentLevel && currentLevel.dialogText && currentLevel.dialogText.length > 0) {
+    //   const isDialogOnly = !!currentLevel.hideCanvas || !!currentLevel.hideCrosshair;
+    //   dialogManager.showDialog(
+    //     currentLevel.dialogText, 
+    //     currentLevel.dialogCharacterImage, 
+    //     currentLevel.dialogPosition,
+    //     isDialogOnly ? () => {
+    //       // Auto-advance to next level for dialog-only levels
+    //       const nextIndex = levelManager.getCurrentLevelIndex() + 1;
+    //       if (nextIndex < levelManager.getLevelCount()) {
+    //         loadLevel(nextIndex);
+    //       }
+    //     } : undefined
+    //   );
+    // }
+  }
+
+  updateArtButtonReadout(isArtCollectionMode);
+}
+
+// Add click event listener to the Art Collection button
+artCollectionButton.addEventListener('click', toggleArtCollection);
