@@ -33,8 +33,6 @@ async function loadLevels(): Promise<Level[]> {
         levelData.id = parseInt(key);
         levels.push(new Level(levelData));
       }
-
-      updateArtButtonReadout(false);
       
       return levels;
     } else {
@@ -173,7 +171,7 @@ async function loadLevel(levelIndex: number) {
   isJiggling = false; // Reset jiggle state when loading new level
   
   // Update jigsaw puzzle with initial guess position if this is a jigsaw level
-  if (currentLevel.jigsawImage && levelRenderer) {
+  if (currentLevel && currentLevel.jigsawImage && levelRenderer) {
     const initialPercentageGuess = {
       x: (guess.x / ART_WIDTH) * 100,
       y: (guess.y / ART_HEIGHT) * 100,
@@ -440,6 +438,9 @@ async function initializeGame() {
   // Initialize level selector and display
   createLevelSelector();
   levelNameDisplay.textContent = currentLevel.displayName;
+  
+  // Update art button readout now that levelManager is available
+  updateArtButtonReadout(false);
 
   // Load initial level
   await loadLevel(0);
@@ -618,6 +619,8 @@ canvas.addEventListener("mousedown", () => {
   const artY = Math.max(0, Math.min(ART_HEIGHT, mouse.y - artOriginY));
   
   // Check pickup condition based on level type
+  if (!currentLevel) return; // Safety check
+  
   if (currentLevel.jigsawImage) {
     // For jigsaw levels, check if click is on the target piece
     if (!levelRenderer.isPointOnJigsawTargetPiece({ x: artX, y: artY })) {
@@ -699,10 +702,10 @@ canvas.addEventListener("mouseenter", () => {
     
     // Check pickup condition based on level type
     let canPickup = false;
-    if (currentLevel.jigsawImage) {
+    if (currentLevel && currentLevel.jigsawImage) {
       // For jigsaw levels, check if click is on the target piece
       canPickup = levelRenderer.isPointOnJigsawTargetPiece({ x: artX, y: artY });
-    } else {
+    } else if (currentLevel) {
       // For regular levels, check if mouse is within pickup radius of current cursor position
       canPickup = LevelManager.distance({ x: artX, y: artY }, guess) <= PICKUP_RADIUS;
     }
@@ -739,11 +742,18 @@ function updateArtButtonReadout(isPaused: boolean) {
 
   let text = 'Back to Game';
 
-  if (!isPaused) {
-    const levelCount = levels.length;
-    const levelsComplete = Math.max(levels.indexOf(currentLevel), 0);
+  if (!isPaused && levelManager) {
+    const artLevels = levelManager.getArtLevels();
+    const totalArtLevels = artLevels.length;
+    
+    // Count how many art levels have been completed (are at or before current level)
+    const currentLevelIndex = levelManager.getCurrentLevelIndex();
+    const completedArtLevels = artLevels.filter(artLevel => {
+      const artLevelIndex = levels.findIndex(level => level.id === artLevel.id);
+      return artLevelIndex <= currentLevelIndex;
+    }).length;
 
-    text = `Art Recovered:\n${levelsComplete} / ${levelCount}`;
+    text = `Art Recovered:\n${completedArtLevels} / ${totalArtLevels}`;
   }
   buttonText.textContent = text;
 }

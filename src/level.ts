@@ -42,6 +42,8 @@ export class Level {
   dialogPosition?: string;
   hideCanvas?: boolean;
   hideCrosshair?: boolean;
+  isArt?: boolean;
+  artRewardLevel?: number;
 
   constructor(levelData: any) {
     this.id = levelData.id;
@@ -66,6 +68,8 @@ export class Level {
     this.dialogPosition = levelData.dialogPosition;
     this.hideCanvas = levelData.hideCanvas;
     this.hideCrosshair = levelData.hideCrosshair;
+    this.isArt = levelData.isArt;
+    this.artRewardLevel = levelData.artRewardLevel;
 
     if (!this.target) this.target = { x: 50, y: 50 };
     if (!this.targetRadius) this.targetRadius = 0;
@@ -78,11 +82,8 @@ export class Level {
   }
 
   isArtLevel(): boolean {
-    if (!!this.jigsawImage) return true;
-
-    if (!!this.image) return true;
-
-    return false;
+    // Only use the explicit isArt boolean parameter
+    return !!this.isArt;
   }
 }
 
@@ -90,9 +91,46 @@ export class Level {
 export class LevelManager {
   private levels: Level[] = [];
   private currentLevelIndex: number = 0;
+  private artLevelMap: Map<number, number[]> = new Map(); // Map from art level ID to array of hacker level IDs
 
   constructor(levels: Level[]) {
     this.levels = levels.sort((a, b) => a.id - b.id);
+    this.buildArtLevelMap();
+  }
+
+  private buildArtLevelMap(): void {
+    // Clear existing map
+    this.artLevelMap.clear();
+
+    // Find all art levels sorted by id
+    const artLevels = this.levels
+      .filter(level => level.isArtLevel())
+      .sort((a, b) => a.id - b.id);
+    
+    // For each level, calculate which art level it should reward
+    for (const level of this.levels) {
+      if (!level.isArtLevel()) {
+        // Find the next art level after this level's id
+        const nextArtLevel = artLevels.find(artLevel => artLevel.id > level.id);
+        
+        if (nextArtLevel) {
+          level.artRewardLevel = nextArtLevel.id;
+        }
+        // If no art level found after this level, artRewardLevel remains undefined
+      } else {
+        // Art levels reward themselves
+        level.artRewardLevel = level.id;
+      }
+    }
+    
+    // Build the map from art level to hacker levels
+    for (const artLevel of artLevels) {
+      const hackerLevels = this.levels
+        .filter(level => !level.isArtLevel() && level.artRewardLevel === artLevel.id)
+        .map(level => level.id);
+      
+      this.artLevelMap.set(artLevel.id, hackerLevels);
+    }
   }
 
   getCurrentLevel(): Level {
@@ -116,6 +154,16 @@ export class LevelManager {
 
   getCurrentLevelIndex(): number {
     return this.currentLevelIndex;
+  }
+
+  // Get hacker levels that correspond to a given art level
+  getHackerLevelsForArt(artLevelId: number): number[] {
+    return this.artLevelMap.get(artLevelId) || [];
+  }
+
+  // Get all art levels
+  getArtLevels(): Level[] {
+    return this.levels.filter(level => level.isArtLevel());
   }
 
   // Check if a guess is within the success radius

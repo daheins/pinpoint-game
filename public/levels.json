@@ -20,7 +20,8 @@
     "target": { "x": 7.8, "y": 37.5 },
     "targetRadius": 2,
     "jigsawImage": "wallhaven-rd3pjw.jpg",
-    "jigsawMovement": 0
+    "jigsawMovement": 0,
+    "isArt": true
   },
   "4": {
     "displayName": "Game",
@@ -42,7 +43,8 @@
     "target": { "x": 35.6, "y": 29.25 },
     "targetRadius": 4,
     "image": "genshinFireworks.webp",
-    "imageFilterDist": "pixel"
+    "imageFilterDist": "pixel",
+    "isArt": true
   },
   "7": {
     "displayName": "Game",
@@ -98,7 +100,8 @@
     "displayName": "Level 5",
     "target": { "x": 61.6, "y": 70.9 },
     "targetRadius": 20,
-    "jigsawImage": "sekiro.jpg"
+    "jigsawImage": "sekiro.jpg",
+    "isArt": true
   },
   "26": {
     "displayName": "Level 6",
@@ -112,7 +115,8 @@
     "target": { "x": 85, "y": 87 },
     "targetRadius": 10,
     "jigsawImage": "hkchains.jpg",
-    "jigsawSlope": 1.3
+    "jigsawSlope": 1.3,
+    "isArt": true
   },
   "29": {
     "displayName": "Dialog",
