@@ -750,7 +750,7 @@ function updateArtButtonReadout(isPaused: boolean) {
     const currentLevelIndex = levelManager.getCurrentLevelIndex();
     const completedArtLevels = artLevels.filter(artLevel => {
       const artLevelIndex = levels.findIndex(level => level.id === artLevel.id);
-      return artLevelIndex <= currentLevelIndex;
+      return artLevelIndex < currentLevelIndex;
     }).length;
 
     text = `Art Recovered:\n${completedArtLevels} / ${totalArtLevels}`;

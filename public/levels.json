@@ -36,22 +36,8 @@
     "target": { "x": 77.8, "y": 67.5 },
     "targetRadius": 4,
     "image": "fuji.png",
-    "imageFilterDist": "warp"
-  },
-  "6": {
-    "displayName": "Game",
-    "target": { "x": 35.6, "y": 29.25 },
-    "targetRadius": 4,
-    "image": "genshinFireworks.webp",
-    "imageFilterDist": "pixel",
+    "imageFilterDist": "warp",
     "isArt": true
-  },
-  "7": {
-    "displayName": "Game",
-    "target": { "x": 62.5, "y": 16.75 },
-    "targetRadius": 4,
-    "image": "purpleMountain.jpg",
-    "imageFilterDist": "twist"
   },
   "11": {
     "displayName": "Game",
@@ -95,6 +81,21 @@
     ],
     "multiImageRadius": 4,
     "multiImageFilter": "twist"
+  },
+  "20": {
+    "displayName": "Game",
+    "target": { "x": 35.6, "y": 29.25 },
+    "targetRadius": 4,
+    "image": "genshinFireworks.webp",
+    "imageFilterDist": "pixel",
+    "isArt": true
+  },
+  "21": {
+    "displayName": "Game",
+    "target": { "x": 62.5, "y": 16.75 },
+    "targetRadius": 4,
+    "image": "purpleMountain.jpg",
+    "imageFilterDist": "twist"
   },
   "25": {
     "displayName": "Level 5",
