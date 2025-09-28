@@ -24,6 +24,7 @@ export class Level {
   displayName: string;
   target: Point;
   targetRadius: number;
+  startPoint?: Point;
   image?: string;
   imageFilterDist?: string;
   imageFilterX?: string;
@@ -50,6 +51,7 @@ export class Level {
     this.displayName = levelData.displayName;
     this.target = levelData.target;
     this.targetRadius = levelData.targetRadius;
+    this.startPoint = levelData.startPoint;
     this.image = levelData.image;
     this.fixedImage = levelData.fixedImage;
     this.multiImage = levelData.multiImage;

@@ -162,8 +162,17 @@ async function loadLevel(levelIndex: number) {
     curveCursorSprite = newCurveCursorSprite;
   }
   
-  // Reset game state - set initial guess to middle of the art viewport
-  guess = { x: ART_WIDTH / 2, y: ART_HEIGHT / 2 };
+  // Reset game state - set initial guess position
+  let xP = 50;
+  let yP = 50;
+  if (currentLevel.startPoint) {
+    xP = currentLevel.startPoint.x;
+    yP = currentLevel.startPoint.y;
+  }
+  guess = { 
+    x: (xP / 100) * ART_WIDTH, 
+    y: (yP / 100) * ART_HEIGHT 
+  };
   successStartMs = null;
   successMessageVisible = false;
   hasPlayerInteractedInLevel = false;

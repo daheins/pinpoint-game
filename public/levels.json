@@ -18,6 +18,7 @@
     "dialogCharacterImage": "char_sad.png",
     "dialogPosition": "bottom",
     "target": { "x": 7.8, "y": 37.5 },
+    "startPoint": { "x": 70, "y": 50 },
     "targetRadius": 2,
     "jigsawImage": "wallhaven-rd3pjw.jpg",
     "jigsawMovement": 0,
@@ -29,11 +30,13 @@
     "dialogCharacterImage": "char_smile.png",
     "dialogPosition": "bottom",
     "target": { "x": 47.8, "y": 7.5 },
+    "startPoint": { "x": 85, "y": 78 },
     "targetRadius": 4
   },
   "5": {
     "displayName": "Game",
     "target": { "x": 77.8, "y": 67.5 },
+    "startPoint": { "x": 48, "y": 12 },
     "targetRadius": 4,
     "image": "fuji.png",
     "imageFilterDist": "warp",
@@ -84,7 +87,8 @@
   },
   "20": {
     "displayName": "Game",
-    "target": { "x": 35.6, "y": 29.25 },
+    "target": { "x": 35.6, "y": 89 },
+    "startPoint": { "x": 58, "y": 11 },
     "targetRadius": 4,
     "image": "genshinFireworks.webp",
     "imageFilterDist": "pixel",
