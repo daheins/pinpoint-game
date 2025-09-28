@@ -68,6 +68,7 @@ let app: Application;
 
 const gameContainer = new Container();
 const artContainer = new Container();
+const artCollectionContainer = new Container();
 const imageContainer = new Container();
 const uiContainer = new Container();
 const dialogContainer = new Container();
@@ -413,6 +414,12 @@ async function initializeGame() {
   gameContainer.addChild(artContainer);
   artContainer.addChild(imageContainer);
   artContainer.addChild(uiContainer);
+  
+  // Art collection container positioned same as art container but initially hidden
+  artCollectionContainer.x = artOriginX;
+  artCollectionContainer.y = artOriginY;
+  artCollectionContainer.visible = false;
+  gameContainer.addChild(artCollectionContainer);
   
   // Load and add persistent tablet background behind all game content (start hidden)
   try {
@@ -767,6 +774,118 @@ function updateArtButtonReadout(isPaused: boolean) {
   buttonText.textContent = text;
 }
 
+// --- Art Collection Grid ---
+async function createArtCollectionGrid() {
+  // Clear existing art collection content
+  artCollectionContainer.removeChildren();
+  
+  if (!levelManager) return;
+  
+  const artLevels = levelManager.getArtLevels();
+  const currentLevelIndex = levelManager.getCurrentLevelIndex();
+  
+  // Grid configuration for 2x3 layout
+  const gridCols = 2;
+  const gridRows = 3;
+  const cellWidth = ART_WIDTH / gridCols;
+  const cellHeight = ART_HEIGHT / gridRows;
+  const padding = 10; // Padding inside each cell
+  
+  for (let i = 0; i < Math.min(artLevels.length, gridCols * gridRows); i++) {
+    const artLevel = artLevels[i];
+    const artLevelIndex = levels.findIndex(level => level.id === artLevel.id);
+    const isCompleted = artLevelIndex < currentLevelIndex;
+    
+    // Calculate grid position
+    const col = i % gridCols;
+    const row = Math.floor(i / gridCols);
+    const x = col * cellWidth + padding;
+    const y = row * cellHeight + padding;
+    const width = cellWidth - (padding * 2);
+    const height = cellHeight - (padding * 2);
+    
+    if (isCompleted) {
+      // Show actual art image
+      await createCompletedArtCell(artLevel, x, y, width, height);
+    } else {
+      // Show placeholder with question mark
+      createPlaceholderArtCell(x, y, width, height);
+    }
+  }
+}
+
+async function createCompletedArtCell(artLevel: Level, x: number, y: number, width: number, height: number) {
+  try {
+    let imagePath = '';
+    
+    // Determine which image to load based on level type
+    if (artLevel.jigsawImage) {
+      imagePath = artLevel.jigsawImage;
+    } else if (artLevel.image) {
+      imagePath = artLevel.image;
+    } else {
+      // Fallback to placeholder if no image found
+      createPlaceholderArtCell(x, y, width, height);
+      return;
+    }
+    
+    const texture = await Assets.load(`${import.meta.env.BASE_URL}images/${imagePath}`);
+    const sprite = new Sprite(texture);
+    
+    // Scale and position the sprite to fit the cell
+    const scaleX = width / texture.width;
+    const scaleY = height / texture.height;
+    const scale = Math.min(scaleX, scaleY); // Maintain aspect ratio
+    
+    sprite.scale.set(scale);
+    sprite.x = x + (width - texture.width * scale) / 2; // Center horizontally
+    sprite.y = y + (height - texture.height * scale) / 2; // Center vertically
+    
+    artCollectionContainer.addChild(sprite);
+    
+    // Add border around completed art
+    const border = new Graphics();
+    border.lineStyle(2, 0x00FF00); // Green border for completed
+    border.drawRect(x, y, width, height);
+    artCollectionContainer.addChild(border);
+    
+  } catch (error) {
+    console.error(`Failed to load art image for level ${artLevel.id}:`, error);
+    // Fallback to placeholder
+    createPlaceholderArtCell(x, y, width, height);
+  }
+}
+
+function createPlaceholderArtCell(x: number, y: number, width: number, height: number) {
+  // Grey rectangle background
+  const background = new Graphics();
+  background.beginFill(0x808080); // Grey
+  background.drawRect(x, y, width, height);
+  background.endFill();
+  artCollectionContainer.addChild(background);
+  
+  // Border
+  const border = new Graphics();
+  border.lineStyle(2, 0x404040); // Dark grey border
+  border.drawRect(x, y, width, height);
+  artCollectionContainer.addChild(border);
+  
+  // Question mark text
+  const questionMark = new Text('?', {
+    fontFamily: 'Chubbo, sans-serif, bold',
+    fontSize: Math.min(width, height) * 0.4,
+    fill: 0x000000,
+    align: 'center',
+    fontWeight: 'bold'
+  });
+  
+  questionMark.anchor.set(0.5, 0.5);
+  questionMark.x = x + width / 2;
+  questionMark.y = y + height / 2;
+  
+  artCollectionContainer.addChild(questionMark);
+}
+
 // --- Art Collection Toggle ---
 function toggleArtCollection() {
   isArtCollectionMode = !isArtCollectionMode;
@@ -775,7 +894,13 @@ function toggleArtCollection() {
     // Hide game-related UI elements
     levelNameDisplay.style.display = 'none';
     levelSelector.style.display = 'none';
-    gameContainer.visible = false;
+    
+    // Hide only the art container, keep tablet background and other UI
+    artContainer.visible = false;
+    
+    // Show art collection grid
+    artCollectionContainer.visible = true;
+    createArtCollectionGrid();
     
     // Hide any active dialogs
     // if (dialogManager) {
@@ -787,7 +912,12 @@ function toggleArtCollection() {
     if (showLevelSelector) {
       levelSelector.style.display = 'flex';
     }
-    gameContainer.visible = true;
+    
+    // Show art container again
+    artContainer.visible = true;
+    
+    // Hide art collection grid
+    artCollectionContainer.visible = false;
     
     // Show tablet background if current level doesn't hide canvas
     if (tabletBackgroundSprite && !currentLevel.hideCanvas) {
