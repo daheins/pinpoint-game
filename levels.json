@@ -1,0 +1,146 @@
+{
+  "1": {
+    "displayName": "Game",
+    "dialogText": ["Hello! I'm hoping you can help me.", "For years I've been an avid art collector, but recently something strange has started happening to my collection."],
+    "dialogCharacterImage": "char_smile.png",
+    "dialogPosition": "middle",
+    "hideCanvas": true
+  },
+  "2": {
+    "displayName": "Game",
+    "dialogText": ["Here, take this tablet. All of my art is stored on it."],
+    "dialogCharacterImage": "char_smile.png",
+    "hideCrosshair": true
+  },
+  "3": {
+    "displayName": "Game",
+    "dialogText": ["Oh, uh. You may have to turn it on. Can you find the right spot to get my device up and running?"],
+    "dialogCharacterImage": "char_smile.png",
+    "dialogPosition": "bottom",
+    "target": { "x": 47.8, "y": 7.5 },
+    "startPoint": { "x": 85, "y": 78 },
+    "targetRadius": 4
+  },
+  "4": {
+    "displayName": "Game",
+    "dialogText": ["Ah, my beautiful art! It's falling apart! Can you help me get it back together?"],
+    "dialogCharacterImage": "char_sad.png",
+    "dialogPosition": "bottom",
+    "target": { "x": 7.8, "y": 37.5 },
+    "startPoint": { "x": 70, "y": 50 },
+    "targetRadius": 2,
+    "jigsawImage": "wallhaven-rd3pjw.jpg",
+    "jigsawMovement": 0,
+    "isArt": true
+  },
+  "5": {
+    "displayName": "Game",
+    "target": { "x": 77.8, "y": 67.5 },
+    "startPoint": { "x": 48, "y": 12 },
+    "targetRadius": 4,
+    "image": "fuji.png",
+    "imageFilterDist": "warp",
+    "isArt": true
+  },
+  "11": {
+    "displayName": "Game",
+    "dialogText": ["What's this!? This doesn't look like any piece from my collection. What do we need to do?"],
+    "dialogCharacterImage": "char_sad.png",
+    "dialogPosition": "bottom",
+    "target": { "x": 10.75, "y": 20.05 },
+    "startPoint": { "x": 77, "y": 32 },
+    "targetRadius": 1,
+    "fixedImage": "10x10gridTransparent.png",
+    "image": "99.png"
+  },
+  "12": {
+    "displayName": "Game",
+    "dialogText": ["I'm holding your art hostage unless you solve my puzzles! Ha ha ha!"],
+    "dialogCharacterImage": "badguy.png",
+    "target": { "x": 3.7, "y": 16.1 },
+    "targetRadius": 1,
+    "fixedImage": "10x10gridTransparent.png",
+    "multiImage": [
+      {
+        "image": "73.png",
+        "target": { "x": 93.7, "y": 16.1 }
+      }
+    ],
+    "multiImageRadius": 4,
+    "multiImageFilter": "twist"
+  },
+  "13": {
+    "displayName": "Game",
+    "dialogText": ["Ok then, I'll make things more complicated!"],
+    "dialogCharacterImage": "badguy.png",
+    "target": { "x": 7.2, "y": 10.25 },
+    "targetRadius": 1,
+    "fixedImage": "10x10gridTransparent.png",
+    "multiImage": [
+      {
+        "image": "level4_1.png",
+        "target": { "x": 25.3, "y": 42.7 }
+      },
+      {
+        "image": "level4_2.png", 
+        "target": { "x": 78.9, "y": 15.2 }
+      },
+      {
+        "image": "level4_3.png",
+        "target": { "x": 56.1, "y": 83.4 }
+      }
+    ],
+    "multiImageRadius": 4,
+    "multiImageFilter": "twist"
+  },
+  "14": {
+    "displayName": "Game",
+    "target": { "x": 1, "y": 75 },
+    "startPoint": { "x": 40, "y": 38 },
+    "targetRadius": 4,
+    "image": "purpleMountain.jpg",
+    "imageFilterDist": "twist",
+    "isArt": true
+  },
+  "25": {
+    "displayName": "Level 5",
+    "target": { "x": 61.6, "y": 70.9 },
+    "targetRadius": 20,
+    "jigsawImage": "sekiro.jpg",
+    "isArt": true
+  },
+  "21": {
+    "displayName": "Game",
+    "target": { "x": 35.6, "y": 89 },
+    "startPoint": { "x": 58, "y": 11 },
+    "targetRadius": 4,
+    "image": "genshinFireworks.webp",
+    "imageFilterDist": "pixel",
+    "isArt": true
+  },
+  "26": {
+    "displayName": "Level 6",
+    "target": { "x": 62.5, "y": 16.75 },
+    "targetRadius": 20,
+    "curveImage": "curve1.png",
+    "curveCursor": "path17.png"
+  },
+  "27": {
+    "displayName": "Level 7",
+    "target": { "x": 85, "y": 87 },
+    "targetRadius": 10,
+    "jigsawImage": "hkchains.jpg",
+    "jigsawSlope": 1.3,
+    "isArt": true,
+    "isTestLevel": true
+  },
+  "29": {
+    "displayName": "Dialog",
+    "target": { "x": 50, "y": 50 },
+    "targetRadius": 20,
+    "dialogText": ["This is a dialog-only level!", "The canvas is hidden but you can still see the level selector."],
+    "dialogCharacterImage": "char_smile.png",
+    "dialogPosition": "middle",
+    "hideCanvas": true
+  }
+}
