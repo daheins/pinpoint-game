@@ -23,7 +23,7 @@
   },
   "4": {
     "displayName": "Game",
-    "dialogText": ["Look, see how this art is falling apart?! Can you help me get it back together?"],
+    "dialogText": ["Ah, my beautiful art! It's falling apart! Can you help me get it back together?"],
     "dialogCharacterImage": "char_sad.png",
     "dialogPosition": "bottom",
     "target": { "x": 7.8, "y": 37.5 },
@@ -44,7 +44,7 @@
   },
   "11": {
     "displayName": "Game",
-    "dialogText": ["What's this!? This doesn't look like any piece from my collection. What is it telling us to do?"],
+    "dialogText": ["What's this!? This doesn't look like any piece from my collection. What do we need to do?"],
     "dialogCharacterImage": "char_sad.png",
     "dialogPosition": "bottom",
     "target": { "x": 10.75, "y": 20.05 },
