@@ -4,7 +4,7 @@ import { Container, Graphics, Text } from "pixi.js";
 import { Level, LevelRenderer } from './level';
 import type { Point } from './level';
 import { ART_WIDTH, ART_HEIGHT } from './gameParams';
-import { showDebugTools } from './gameParams_debug';
+import { showDebugTools } from './gameParamsDebug';
 
 // Debug display elements
 let coordinateDisplay: Text | null = null;

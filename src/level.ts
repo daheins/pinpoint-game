@@ -3,7 +3,7 @@
 import { Application, Sprite, Assets, Container, DisplacementFilter, BlurFilter, NoiseFilter, Graphics } from "pixi.js";
 import { PixelateFilter } from '@pixi/filter-pixelate';
 import { TwistFilter } from '@pixi/filter-twist';
-import { showCurve } from './gameParams_debug';
+import { showCurve } from './gameParamsDebug';
 import { ART_WIDTH, ART_HEIGHT, TABLET_WIDTH, TABLET_HEIGHT } from './gameParams';
 import { ScatterPuzzle } from './scatterPuzzle';
 

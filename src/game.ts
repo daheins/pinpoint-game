@@ -12,7 +12,7 @@ import { createCurveDistanceDisplay, createCoordinateDisplay, createTargetCircle
 import { DialogManager } from './dialogManager';
 
 import { Application, Container, Graphics, Text, Sprite, Assets } from "pixi.js";
-import { showLevelSelector, includeTestLevels } from './gameParams_debug';
+import { showLevelSelector, includeTestLevels } from './gameParamsDebug';
 
 // Function to load all levels from consolidated levels file
 async function loadLevels(): Promise<Level[]> {
