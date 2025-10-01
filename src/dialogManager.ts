@@ -55,8 +55,10 @@ export class DialogManager {
         this.characterSprite = new Sprite(texture);
         
         // Option 1: Use a less aggressive scaling (1/3 instead of 1/5)
-        this.characterSprite.width = this.characterSprite.width / 5;
-        this.characterSprite.height = this.characterSprite.height / 5;
+        const width = this.characterSprite.width;
+        const customWidth = 160;
+        this.characterSprite.width = customWidth;
+        this.characterSprite.height = this.characterSprite.height / width * customWidth;
         
         // Option 2: Try even less scaling (1/2)
         // this.characterSprite.width = this.characterSprite.width / 2;
