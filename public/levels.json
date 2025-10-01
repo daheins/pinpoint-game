@@ -131,7 +131,8 @@
     "targetRadius": 10,
     "jigsawImage": "hkchains.jpg",
     "jigsawSlope": 1.3,
-    "isArt": true
+    "isArt": true,
+    "isTestLevel": true
   },
   "29": {
     "displayName": "Dialog",

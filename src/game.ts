@@ -12,7 +12,7 @@ import { createCurveDistanceDisplay, createCoordinateDisplay, createTargetCircle
 import { DialogManager } from './dialogManager';
 
 import { Application, Container, Graphics, Text, Sprite, Assets } from "pixi.js";
-import { showLevelSelector } from './gameParams_debug';
+import { showLevelSelector, includeTestLevels } from './gameParams_debug';
 
 // Function to load all levels from consolidated levels file
 async function loadLevels(): Promise<Level[]> {
@@ -31,7 +31,14 @@ async function loadLevels(): Promise<Level[]> {
         const levelData = levelsData[key];
         // Add the id from the key
         levelData.id = parseInt(key);
-        levels.push(new Level(levelData));
+        const level = new Level(levelData);
+        
+        // Filter out test levels if includeTestLevels is false
+        if (level.isTestLevel && !includeTestLevels) {
+          continue; // Skip this level
+        }
+        
+        levels.push(level);
       }
       
       return levels;

@@ -44,6 +44,7 @@ export class Level {
   hideCanvas?: boolean;
   hideCrosshair?: boolean;
   isArt?: boolean;
+  isTestLevel?: boolean;
   artRewardLevel?: number;
 
   constructor(levelData: any) {
@@ -71,6 +72,7 @@ export class Level {
     this.hideCanvas = levelData.hideCanvas;
     this.hideCrosshair = levelData.hideCrosshair;
     this.isArt = levelData.isArt;
+    this.isTestLevel = levelData.isTestLevel;
     this.artRewardLevel = levelData.artRewardLevel;
 
     if (!this.target) this.target = { x: 50, y: 50 };
